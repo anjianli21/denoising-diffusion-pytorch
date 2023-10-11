@@ -83,7 +83,7 @@ class Dataset1D(Dataset):
 
 # small helper modules
 
-class Residual(nn.Module):
+class Residual(nn.Module):  # TODO: input a function f, return f(x) + x
     def __init__(self, fn):
         super().__init__()
         self.fn = fn
@@ -91,7 +91,7 @@ class Residual(nn.Module):
     def forward(self, x, *args, **kwargs):
         return self.fn(x, *args, **kwargs) + x
 
-def Upsample(dim, dim_out = None):
+def Upsample(dim, dim_out = None):  # TODO: upsample and downsample using conv1d
     return nn.Sequential(
         nn.Upsample(scale_factor = 2, mode = 'nearest'),
         nn.Conv1d(dim, default(dim_out, dim), 3, padding = 1)
@@ -119,7 +119,7 @@ class PreNorm(nn.Module):
         return self.fn(x)
 
 # sinusoidal positional embeds
-
+# TODO： takes a tensor of shape (batch_size, 1) as input, return a tensor of shape (batch_size, dim), with dim being the dimensionality of the position embeddings
 class SinusoidalPosEmb(nn.Module):
     def __init__(self, dim, theta = 10000):
         super().__init__()
@@ -135,7 +135,7 @@ class SinusoidalPosEmb(nn.Module):
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
         return emb
 
-class RandomOrLearnedSinusoidalPosEmb(nn.Module):
+class RandomOrLearnedSinusoidalPosEmb(nn.Module):  #TODO: another positional encoding?
     """ following @crowsonkb 's lead with random (learned optional) sinusoidal pos emb """
     """ https://github.com/crowsonkb/v-diffusion-jax/blob/master/diffusion/models/danbooru_128.py#L8 """
 
@@ -153,11 +153,11 @@ class RandomOrLearnedSinusoidalPosEmb(nn.Module):
         return fouriered
 
 # building block modules
-
+# TODO: group number is set to 8 by default
 class Block(nn.Module):
     def __init__(self, dim, dim_out, groups = 8):
         super().__init__()
-        self.proj = nn.Conv1d(dim, dim_out, 3, padding = 1)
+        self.proj = nn.Conv1d(dim, dim_out, 3, padding = 1)  # TODO: ouput size is the same as input size
         self.norm = nn.GroupNorm(groups, dim_out)
         self.act = nn.SiLU()
 
@@ -198,7 +198,7 @@ class ResnetBlock(nn.Module):
 
         return h + self.res_conv(x)
 
-class LinearAttention(nn.Module):
+class LinearAttention(nn.Module):  # TODO: del the sequence
     def __init__(self, dim, heads = 4, dim_head = 32):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -214,7 +214,7 @@ class LinearAttention(nn.Module):
     def forward(self, x):
         b, c, n = x.shape
         qkv = self.to_qkv(x).chunk(3, dim = 1)
-        q, k, v = map(lambda t: rearrange(t, 'b (h c) n -> b h c n', h = self.heads), qkv)
+        q, k, v = map(lambda t: rearrange(t, 'b (h c) n -> b h c n', h = self.heads), qkv)  # TODO: rearrange can help manage the dimension (even split or merge them)
 
         q = q.softmax(dim = -2)
         k = k.softmax(dim = -1)
@@ -262,7 +262,7 @@ class Unet1D(nn.Module):
         dim_mults=(1, 2, 4, 8),
         channels = 3,
         self_condition = False,
-        resnet_block_groups = 8,
+        resnet_block_groups = 4,  # TODO: previously resnet_block_groups = 8
         learned_variance = False,
         learned_sinusoidal_cond = False,
         random_fourier_features = False,
@@ -280,7 +280,7 @@ class Unet1D(nn.Module):
         input_channels = channels * (2 if self_condition else 1)
 
         init_dim = default(init_dim, dim)
-        self.init_conv = nn.Conv1d(input_channels, init_dim, 7, padding = 3)
+        self.init_conv = nn.Conv1d(input_channels, init_dim, 7, padding = 3)  # TODO: currently the init convolution uses a kernel size = 7
 
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
@@ -288,7 +288,6 @@ class Unet1D(nn.Module):
         block_klass = partial(ResnetBlock, groups = resnet_block_groups)
 
         # time embeddings
-
         time_dim = dim * 4
 
         self.random_or_learned_sinusoidal_cond = learned_sinusoidal_cond or random_fourier_features
@@ -434,6 +433,7 @@ class GaussianDiffusion1D(nn.Module):
 
         assert objective in {'pred_noise', 'pred_x0', 'pred_v'}, 'objective must be either pred_noise (predict noise) or pred_x0 (predict image start) or pred_v (predict v [v-parameterization as defined in appendix D of progressive distillation paper, used in imagen-video successfully])'
 
+        # define beta schedule
         if beta_schedule == 'linear':
             betas = linear_beta_schedule(timesteps)
         elif beta_schedule == 'cosine':

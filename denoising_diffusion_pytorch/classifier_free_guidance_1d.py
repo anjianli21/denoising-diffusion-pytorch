@@ -1,5 +1,4 @@
 import math
-import copy
 from pathlib import Path
 from random import random
 from functools import partial
@@ -7,16 +6,24 @@ from collections import namedtuple
 from multiprocessing import cpu_count
 
 import torch
-from torch import nn, einsum
+from torch import nn, einsum, Tensor
 import torch.nn.functional as F
 from torch.cuda.amp import autocast
+from torch.optim import Adam
+from torch.utils.data import Dataset, DataLoader
 
 from einops import rearrange, reduce, repeat
 from einops.layers.torch import Rearrange
 
+from accelerate import Accelerator
+from ema_pytorch import EMA
+
 from tqdm.auto import tqdm
 
+from denoising_diffusion_pytorch.version import __version__
+
 # constants
+
 ModelPrediction =  namedtuple('ModelPrediction', ['pred_noise', 'pred_x_start'])
 
 # helpers functions
@@ -54,13 +61,13 @@ def convert_image_to_fn(img_type, image):
     return image
 
 # normalization functions
-
 def normalize_to_neg_one_to_one(img):
     return img * 2 - 1
 
 def unnormalize_to_zero_to_one(t):
     return (t + 1) * 0.5
 
+# TODO: used for classifier free ####################
 def uniform(shape, device):
     return torch.zeros(shape, device = device).float().uniform_(0, 1)
 
@@ -72,9 +79,22 @@ def prob_mask_like(shape, prob, device):
     else:
         return torch.zeros(shape, device = device).float().uniform_(0, 1) < prob
 
+# data
+
+class Dataset1D(Dataset):
+    def __init__(self, tensor: Tensor):
+        super().__init__()
+        self.tensor = tensor.clone()
+
+    def __len__(self):
+        return len(self.tensor)
+
+    def __getitem__(self, idx):
+        return self.tensor[idx].clone()
+
 # small helper modules
 
-class Residual(nn.Module):
+class Residual(nn.Module):  # TODO: input a function f, return f(x) + x
     def __init__(self, fn):
         super().__init__()
         self.fn = fn
@@ -82,19 +102,19 @@ class Residual(nn.Module):
     def forward(self, x, *args, **kwargs):
         return self.fn(x, *args, **kwargs) + x
 
-def Upsample(dim, dim_out = None):
+def Upsample(dim, dim_out = None):  # TODO: upsample and downsample using conv1d
     return nn.Sequential(
         nn.Upsample(scale_factor = 2, mode = 'nearest'),
-        nn.Conv2d(dim, default(dim_out, dim), 3, padding = 1)
+        nn.Conv1d(dim, default(dim_out, dim), 3, padding = 1)
     )
 
 def Downsample(dim, dim_out = None):
-    return nn.Conv2d(dim, default(dim_out, dim), 4, 2, 1)
+    return nn.Conv1d(dim, default(dim_out, dim), 4, 2, 1)
 
 class RMSNorm(nn.Module):
     def __init__(self, dim):
         super().__init__()
-        self.g = nn.Parameter(torch.ones(1, dim, 1, 1))
+        self.g = nn.Parameter(torch.ones(1, dim, 1))
 
     def forward(self, x):
         return F.normalize(x, dim = 1) * self.g * (x.shape[1] ** 0.5)
@@ -110,22 +130,23 @@ class PreNorm(nn.Module):
         return self.fn(x)
 
 # sinusoidal positional embeds
-
+# TODO： takes a tensor of shape (batch_size, 1) as input, return a tensor of shape (batch_size, dim), with dim being the dimensionality of the position embeddings
 class SinusoidalPosEmb(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, theta = 10000):
         super().__init__()
         self.dim = dim
+        self.theta = theta
 
     def forward(self, x):
         device = x.device
         half_dim = self.dim // 2
-        emb = math.log(10000) / (half_dim - 1)
+        emb = math.log(self.theta) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, device=device) * -emb)
         emb = x[:, None] * emb[None, :]
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
         return emb
 
-class RandomOrLearnedSinusoidalPosEmb(nn.Module):
+class RandomOrLearnedSinusoidalPosEmb(nn.Module):  #TODO: another positional encoding?
     """ following @crowsonkb 's lead with random (learned optional) sinusoidal pos emb """
     """ https://github.com/crowsonkb/v-diffusion-jax/blob/master/diffusion/models/danbooru_128.py#L8 """
 
@@ -143,11 +164,11 @@ class RandomOrLearnedSinusoidalPosEmb(nn.Module):
         return fouriered
 
 # building block modules
-
+# TODO: group number is set to 8 by default
 class Block(nn.Module):
     def __init__(self, dim, dim_out, groups = 8):
         super().__init__()
-        self.proj = nn.Conv2d(dim, dim_out, 3, padding = 1)
+        self.proj = nn.Conv1d(dim, dim_out, 3, padding = 1)  # TODO: ouput size is the same as input size
         self.norm = nn.GroupNorm(groups, dim_out)
         self.act = nn.SiLU()
 
@@ -172,16 +193,20 @@ class ResnetBlock(nn.Module):
 
         self.block1 = Block(dim, dim_out, groups = groups)
         self.block2 = Block(dim_out, dim_out, groups = groups)
-        self.res_conv = nn.Conv2d(dim, dim_out, 1) if dim != dim_out else nn.Identity()
+        self.res_conv = nn.Conv1d(dim, dim_out, 1) if dim != dim_out else nn.Identity()
 
     def forward(self, x, time_emb = None, class_emb = None):
 
         scale_shift = None
         if exists(self.mlp) and (exists(time_emb) or exists(class_emb)):
             cond_emb = tuple(filter(exists, (time_emb, class_emb)))
-            cond_emb = torch.cat(cond_emb, dim = -1)
-            cond_emb = self.mlp(cond_emb)
-            cond_emb = rearrange(cond_emb, 'b c -> b c 1 1')
+            cond_emb = torch.cat(cond_emb, dim=-1)
+            try:
+                cond_emb = self.mlp(cond_emb)
+            except:
+                print("aa")
+            cond_emb = rearrange(cond_emb, 'b c -> b c 1')
+
             scale_shift = cond_emb.chunk(2, dim = 1)
 
         h = self.block1(x, scale_shift = scale_shift)
@@ -190,23 +215,23 @@ class ResnetBlock(nn.Module):
 
         return h + self.res_conv(x)
 
-class LinearAttention(nn.Module):
+class LinearAttention(nn.Module):  # TODO: del the sequence
     def __init__(self, dim, heads = 4, dim_head = 32):
         super().__init__()
         self.scale = dim_head ** -0.5
         self.heads = heads
         hidden_dim = dim_head * heads
-        self.to_qkv = nn.Conv2d(dim, hidden_dim * 3, 1, bias = False)
+        self.to_qkv = nn.Conv1d(dim, hidden_dim * 3, 1, bias = False)
 
         self.to_out = nn.Sequential(
-            nn.Conv2d(hidden_dim, dim, 1),
+            nn.Conv1d(hidden_dim, dim, 1),
             RMSNorm(dim)
         )
 
     def forward(self, x):
-        b, c, h, w = x.shape
+        b, c, n = x.shape
         qkv = self.to_qkv(x).chunk(3, dim = 1)
-        q, k, v = map(lambda t: rearrange(t, 'b (h c) x y -> b h c (x y)', h = self.heads), qkv)
+        q, k, v = map(lambda t: rearrange(t, 'b (h c) n -> b h c n', h = self.heads), qkv)  # TODO: rearrange can help manage the dimension (even split or merge them)
 
         q = q.softmax(dim = -2)
         k = k.softmax(dim = -1)
@@ -216,7 +241,7 @@ class LinearAttention(nn.Module):
         context = torch.einsum('b h d n, b h e n -> b h d e', k, v)
 
         out = torch.einsum('b h d e, b h d n -> b h e n', context, q)
-        out = rearrange(out, 'b h c (x y) -> b (h c) x y', h = self.heads, x = h, y = w)  # TODO: if it's 1D data, then replace x y as n
+        out = rearrange(out, 'b h c n -> b (h c) n', h = self.heads)
         return self.to_out(out)
 
 class Attention(nn.Module):
@@ -226,13 +251,13 @@ class Attention(nn.Module):
         self.heads = heads
         hidden_dim = dim_head * heads
 
-        self.to_qkv = nn.Conv2d(dim, hidden_dim * 3, 1, bias = False)
-        self.to_out = nn.Conv2d(hidden_dim, dim, 1)
+        self.to_qkv = nn.Conv1d(dim, hidden_dim * 3, 1, bias = False)
+        self.to_out = nn.Conv1d(hidden_dim, dim, 1)
 
     def forward(self, x):
-        b, c, h, w = x.shape
+        b, c, n = x.shape
         qkv = self.to_qkv(x).chunk(3, dim = 1)
-        q, k, v = map(lambda t: rearrange(t, 'b (h c) x y -> b h c (x y)', h = self.heads), qkv)
+        q, k, v = map(lambda t: rearrange(t, 'b (h c) n -> b h c n', h = self.heads), qkv)
 
         q = q * self.scale
 
@@ -240,41 +265,43 @@ class Attention(nn.Module):
         attn = sim.softmax(dim = -1)
         out = einsum('b h i j, b h d j -> b h i d', attn, v)
 
-        out = rearrange(out, 'b h (x y) d -> b (h d) x y', x = h, y = w)
+        out = rearrange(out, 'b h n d -> b (h d) n')
         return self.to_out(out)
 
 # model
 
-class Unet(nn.Module):
+class Unet1D(nn.Module):
     def __init__(
         self,
         dim,
         num_classes,
-        cond_drop_prob = 0.5,
+        cond_drop_prob=0.5,
         init_dim = None,
         out_dim = None,
         dim_mults=(1, 2, 4, 8),
         channels = 3,
-        resnet_block_groups = 8,
+        self_condition = False,
+        resnet_block_groups = 4,  # TODO: previously resnet_block_groups = 8
         learned_variance = False,
         learned_sinusoidal_cond = False,
         random_fourier_features = False,
         learned_sinusoidal_dim = 16,
+        sinusoidal_pos_emb_theta = 10000,
         attn_dim_head = 32,
         attn_heads = 4
     ):
         super().__init__()
 
         # classifier free guidance stuff
-
         self.cond_drop_prob = cond_drop_prob
 
         # determine dimensions
         self.channels = channels
-        input_channels = channels
+        self.self_condition = self_condition
+        input_channels = channels * (2 if self_condition else 1)
 
         init_dim = default(init_dim, dim)
-        self.init_conv = nn.Conv2d(input_channels, init_dim, 7, padding = 3)
+        self.init_conv = nn.Conv1d(input_channels, init_dim, 7, padding = 3)  # TODO: currently the init convolution uses a kernel size = 7
 
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
@@ -290,7 +317,7 @@ class Unet(nn.Module):
             sinu_pos_emb = RandomOrLearnedSinusoidalPosEmb(learned_sinusoidal_dim, random_fourier_features)
             fourier_dim = learned_sinusoidal_dim + 1
         else:
-            sinu_pos_emb = SinusoidalPosEmb(dim)
+            sinu_pos_emb = SinusoidalPosEmb(dim, theta = sinusoidal_pos_emb_theta)
             fourier_dim = dim
 
         self.time_mlp = nn.Sequential(
@@ -300,9 +327,10 @@ class Unet(nn.Module):
             nn.Linear(time_dim, time_dim)
         )
 
-        # class embeddings ## TODO: define the conditional embedding
+        # TODO: class embeddings ##, define the conditional embedding
         self.classes_emb = nn.Embedding(num_classes, dim)
-        self.null_classes_emb = nn.Parameter(torch.randn(dim))  # TODO: null class emb, it is random number now, should it be 0?
+        self.null_classes_emb = nn.Parameter(
+            torch.randn(dim))  # TODO: null class emb, it is random number now, should it be 0?
 
         classes_dim = dim * 4
 
@@ -321,49 +349,50 @@ class Unet(nn.Module):
             is_last = ind >= (num_resolutions - 1)
 
             self.downs.append(nn.ModuleList([
-                block_klass(dim_in, dim_in, time_emb_dim = time_dim, classes_emb_dim = classes_dim),
-                block_klass(dim_in, dim_in, time_emb_dim = time_dim, classes_emb_dim = classes_dim),
+                block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=classes_dim),
+                block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=classes_dim),
                 Residual(PreNorm(dim_in, LinearAttention(dim_in))),
-                Downsample(dim_in, dim_out) if not is_last else nn.Conv2d(dim_in, dim_out, 3, padding = 1)
+                Downsample(dim_in, dim_out) if not is_last else nn.Conv1d(dim_in, dim_out, 3, padding = 1)
             ]))
 
         mid_dim = dims[-1]
-        self.mid_block1 = block_klass(mid_dim, mid_dim, time_emb_dim = time_dim, classes_emb_dim = classes_dim)
-        self.mid_attn = Residual(PreNorm(mid_dim, Attention(mid_dim, dim_head = attn_dim_head, heads = attn_heads)))
-        self.mid_block2 = block_klass(mid_dim, mid_dim, time_emb_dim = time_dim, classes_emb_dim = classes_dim)
+        self.mid_block1 = block_klass(mid_dim, mid_dim, time_emb_dim=time_dim, classes_emb_dim=classes_dim)
+        self.mid_attn = Residual(PreNorm(mid_dim, Attention(mid_dim, dim_head=attn_dim_head, heads=attn_heads)))
+        self.mid_block2 = block_klass(mid_dim, mid_dim, time_emb_dim=time_dim, classes_emb_dim=classes_dim)
+
 
         for ind, (dim_in, dim_out) in enumerate(reversed(in_out)):
             is_last = ind == (len(in_out) - 1)
 
             self.ups.append(nn.ModuleList([
-                block_klass(dim_out + dim_in, dim_out, time_emb_dim = time_dim, classes_emb_dim = classes_dim),
-                block_klass(dim_out + dim_in, dim_out, time_emb_dim = time_dim, classes_emb_dim = classes_dim),
+                block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=classes_dim),
+                block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=classes_dim),
                 Residual(PreNorm(dim_out, LinearAttention(dim_out))),
-                Upsample(dim_out, dim_in) if not is_last else  nn.Conv2d(dim_out, dim_in, 3, padding = 1)
+                Upsample(dim_out, dim_in) if not is_last else  nn.Conv1d(dim_out, dim_in, 3, padding = 1)
             ]))
 
         default_out_dim = channels * (1 if not learned_variance else 2)
         self.out_dim = default(out_dim, default_out_dim)
 
         self.final_res_block = block_klass(dim * 2, dim, time_emb_dim = time_dim, classes_emb_dim = classes_dim)
-        self.final_conv = nn.Conv2d(dim, self.out_dim, 1)
+        self.final_conv = nn.Conv1d(dim, self.out_dim, 1)
 
     # TODO: classifier free guidance loss, set conditional scale to be w,
     def forward_with_cond_scale(
-        self,
-        *args,
-        cond_scale = 1.,
-        rescaled_phi = 0.,
-        **kwargs
+            self,
+            *args,
+            cond_scale=1.,
+            rescaled_phi=0.,
+            **kwargs
     ):
         # TODO: fully conditional output
-        logits = self.forward(*args, cond_drop_prob = 0., **kwargs)
+        logits = self.forward(*args, cond_drop_prob=0., **kwargs)
 
         if cond_scale == 1:
             return logits
 
         # TODO: unconditional output
-        null_logits = self.forward(*args, cond_drop_prob = 1., **kwargs)
+        null_logits = self.forward(*args, cond_drop_prob=1., **kwargs)
 
         # weighted sum = unconditional + scale * (conditional - conditional) = scale * conditional + (1 - scale) * unconditional
         scaled_logits = null_logits + (logits - null_logits) * cond_scale
@@ -372,40 +401,39 @@ class Unet(nn.Module):
             return scaled_logits
 
         # Rescale the cost with std
-        std_fn = partial(torch.std, dim = tuple(range(1, scaled_logits.ndim)), keepdim = True)
+        std_fn = partial(torch.std, dim=tuple(range(1, scaled_logits.ndim)), keepdim=True)
         rescaled_logits = scaled_logits * (std_fn(logits) / std_fn(scaled_logits))
 
         # weighted sum of rescaled and original sum. if rescaled_phi = 1.0, then fully use rescaled loss
         return rescaled_logits * rescaled_phi + scaled_logits * (1. - rescaled_phi)
 
-    def forward(
-        self,
-        x,
-        time,
-        classes,
-        cond_drop_prob = None
-    ):
+    def forward(self,
+                x,
+                time,
+                classes,
+                cond_drop_prob=None):
+
         batch, device = x.shape[0], x.device
 
         cond_drop_prob = default(cond_drop_prob, self.cond_drop_prob)
 
-        # derive condition, with condition dropout for classifier free guidance        
+        # derive condition, with condition dropout for classifier free guidance
         # TODO: dropout some classes by masking them
         classes_emb = self.classes_emb(classes)
         # TODO: Depend on the conditional drop probability we set when initialized
         if cond_drop_prob > 0:
-            keep_mask = prob_mask_like((batch,), 1 - cond_drop_prob, device = device)
-            null_classes_emb = repeat(self.null_classes_emb, 'd -> b d', b = batch)
+            keep_mask = prob_mask_like((batch,), 1 - cond_drop_prob, device=device)
+            null_classes_emb = repeat(self.null_classes_emb, 'd -> b d', b=batch)
 
             classes_emb = torch.where(
                 rearrange(keep_mask, 'b -> b 1'),
                 classes_emb,
-                null_classes_emb # TODO, when not keeping mask, using null_classes_emb to fill in
+                null_classes_emb  # TODO, when not keeping mask, using null_classes_emb to fill in
             )
         # TODO: embed the class to the conditional variable c
         c = self.classes_mlp(classes_emb)
 
-        # unet
+        # Unet
         x = self.init_conv(x)
         r = x.clone()
 
@@ -467,34 +495,30 @@ def cosine_beta_schedule(timesteps, s = 0.008):
     betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
     return torch.clip(betas, 0, 0.999)
 
-class GaussianDiffusion(nn.Module):
+class GaussianDiffusion1D(nn.Module):
     def __init__(
         self,
         model,
         *,
-        image_size,
+        seq_length,
         timesteps = 1000,
         sampling_timesteps = None,
-        objective = 'pred_noise',  # TODO: default objective is to predict the noise epsilon
+        objective = 'pred_noise',
         beta_schedule = 'cosine',
-        ddim_sampling_eta = 1.,
-        offset_noise_strength = 0.,
-        min_snr_loss_weight = False,
-        min_snr_gamma = 5
+        ddim_sampling_eta = 0.,
+        auto_normalize = True
     ):
         super().__init__()
-        assert not (type(self) == GaussianDiffusion and model.channels != model.out_dim)
-        assert not model.random_or_learned_sinusoidal_cond
-
         self.model = model
         self.channels = self.model.channels
 
-        self.image_size = image_size
+        self.seq_length = seq_length
 
         self.objective = objective
 
         assert objective in {'pred_noise', 'pred_x0', 'pred_v'}, 'objective must be either pred_noise (predict noise) or pred_x0 (predict image start) or pred_v (predict v [v-parameterization as defined in appendix D of progressive distillation paper, used in imagen-video successfully])'
 
+        # define beta schedule
         if beta_schedule == 'linear':
             betas = linear_beta_schedule(timesteps)
         elif beta_schedule == 'cosine':
@@ -547,26 +571,23 @@ class GaussianDiffusion(nn.Module):
         register_buffer('posterior_mean_coef1', betas * torch.sqrt(alphas_cumprod_prev) / (1. - alphas_cumprod))
         register_buffer('posterior_mean_coef2', (1. - alphas_cumprod_prev) * torch.sqrt(alphas) / (1. - alphas_cumprod))
 
-        # offset noise strength - 0.1 was claimed ideal
-
-        self.offset_noise_strength = offset_noise_strength
-
-        # loss weight
+        # calculate loss weight
 
         snr = alphas_cumprod / (1 - alphas_cumprod)
 
-        maybe_clipped_snr = snr.clone()
-        if min_snr_loss_weight:
-            maybe_clipped_snr.clamp_(max = min_snr_gamma)
-
         if objective == 'pred_noise':
-            loss_weight = maybe_clipped_snr / snr
+            loss_weight = torch.ones_like(snr)
         elif objective == 'pred_x0':
-            loss_weight = maybe_clipped_snr
+            loss_weight = snr
         elif objective == 'pred_v':
-            loss_weight = maybe_clipped_snr / (snr + 1)
+            loss_weight = snr / (snr + 1)
 
         register_buffer('loss_weight', loss_weight)
+
+        # whether to autonormalize
+
+        self.normalize = normalize_to_neg_one_to_one if auto_normalize else identity
+        self.unnormalize = unnormalize_to_zero_to_one if auto_normalize else identity
 
     def predict_start_from_noise(self, x_t, t, noise):
         return (
@@ -591,7 +612,7 @@ class GaussianDiffusion(nn.Module):
             extract(self.sqrt_alphas_cumprod, t, x_t.shape) * x_t -
             extract(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape) * v
         )
-    # TODO: posterior has no gradient, fixed?
+
     def q_posterior(self, x_start, x_t, t):
         posterior_mean = (
             extract(self.posterior_mean_coef1, t, x_t.shape) * x_start +
@@ -601,15 +622,18 @@ class GaussianDiffusion(nn.Module):
         posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def model_predictions(self, x, t, classes, cond_scale = 6., rescaled_phi = 0.7, clip_x_start = False):
-        # TODO: forward of model with conditional scale w?
-        model_output = self.model.forward_with_cond_scale(x, t, classes, cond_scale = cond_scale, rescaled_phi = rescaled_phi)
-        maybe_clip = partial(torch.clamp, min = -1., max = 1.) if clip_x_start else identity
+    def model_predictions(self, x, t, classes, cond_scale = 6., rescaled_phi = 0.7, clip_x_start = False, rederive_pred_noise = False):
+        model_output = self.model.forward_with_cond_scale(x, t, classes, cond_scale=cond_scale,
+                                                          rescaled_phi=rescaled_phi)
+        maybe_clip = partial(torch.clamp, min=-1., max=1.) if clip_x_start else identity
 
         if self.objective == 'pred_noise':
             pred_noise = model_output
             x_start = self.predict_start_from_noise(x, t, pred_noise)
             x_start = maybe_clip(x_start)
+
+            if clip_x_start and rederive_pred_noise:
+                pred_noise = self.predict_noise_from_start(x, t, x_start)
 
         elif self.objective == 'pred_x0':
             x_start = model_output
@@ -652,27 +676,30 @@ class GaussianDiffusion(nn.Module):
         x_start = None
 
         # TODO: the giant sample loop, loop over each time steps, and sample the x_(t-1) at each steps
-        for t in tqdm(reversed(range(0, self.num_timesteps)), desc = 'sampling loop time step', total = self.num_timesteps):
+        for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
             img, x_start = self.p_sample(img, t, classes, cond_scale, rescaled_phi)
 
-        img = unnormalize_to_zero_to_one(img)
+        img = self.unnormalize(img)
         return img
 
     @torch.no_grad()
-    def ddim_sample(self, classes, shape, cond_scale = 6., rescaled_phi = 0.7, clip_denoised = True):
-        batch, device, total_timesteps, sampling_timesteps, eta, objective = shape[0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
+    def ddim_sample(self, classes, shape, cond_scale=6., rescaled_phi=0.7, clip_denoised=True):
+        batch, device, total_timesteps, sampling_timesteps, eta, objective = shape[
+                                                                                 0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
 
-        times = torch.linspace(-1, total_timesteps - 1, steps=sampling_timesteps + 1)   # [-1, 0, 1, 2, ..., T-1] when sampling_timesteps == total_timesteps
+        times = torch.linspace(-1, total_timesteps - 1,
+                               steps=sampling_timesteps + 1)  # [-1, 0, 1, 2, ..., T-1] when sampling_timesteps == total_timesteps
         times = list(reversed(times.int().tolist()))
-        time_pairs = list(zip(times[:-1], times[1:])) # [(T-1, T-2), (T-2, T-3), ..., (1, 0), (0, -1)]
+        time_pairs = list(zip(times[:-1], times[1:]))  # [(T-1, T-2), (T-2, T-3), ..., (1, 0), (0, -1)]
 
-        img = torch.randn(shape, device = device)
+        img = torch.randn(shape, device=device)
 
         x_start = None
 
-        for time, time_next in tqdm(time_pairs, desc = 'sampling loop time step'):
+        for time, time_next in tqdm(time_pairs, desc='sampling loop time step'):
             time_cond = torch.full((batch,), time, device=device, dtype=torch.long)
-            pred_noise, x_start, *_ = self.model_predictions(img, time_cond, classes, cond_scale = cond_scale, clip_x_start = clip_denoised)
+            pred_noise, x_start, *_ = self.model_predictions(img, time_cond, classes, cond_scale=cond_scale,
+                                                             clip_x_start=clip_denoised)
 
             if time_next < 0:
                 img = x_start
@@ -695,9 +722,9 @@ class GaussianDiffusion(nn.Module):
 
     @torch.no_grad()
     def sample(self, classes, cond_scale = 6., rescaled_phi = 0.7):
-        batch_size, image_size, channels = classes.shape[0], self.image_size, self.channels
+        batch_size, seq_length, channels = classes.shape[0], self.seq_length, self.channels
         sample_fn = self.p_sample_loop if not self.is_ddim_sampling else self.ddim_sample
-        return sample_fn(classes, (batch_size, channels, image_size, image_size), cond_scale, rescaled_phi)
+        return sample_fn(classes, (batch_size, channels, seq_length), cond_scale, rescaled_phi)
 
     @torch.no_grad()
     def interpolate(self, x1, x2, t = None, lam = 0.5):
@@ -706,12 +733,16 @@ class GaussianDiffusion(nn.Module):
 
         assert x1.shape == x2.shape
 
-        t_batched = torch.stack([torch.tensor(t, device = device)] * b)
+        t_batched = torch.full((b,), t, device = device)
         xt1, xt2 = map(lambda x: self.q_sample(x, t = t_batched), (x1, x2))
 
         img = (1 - lam) * xt1 + lam * xt2
+
+        x_start = None
+
         for i in tqdm(reversed(range(0, t)), desc = 'interpolation sample time step', total = t):
-            img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long))
+            self_cond = x_start if self.self_condition else None
+            img, x_start = self.p_sample(img, i, self_cond)
 
         return img
 
@@ -719,21 +750,16 @@ class GaussianDiffusion(nn.Module):
     def q_sample(self, x_start, t, noise=None):
         noise = default(noise, lambda: torch.randn_like(x_start))
 
-        if self.offset_noise_strength > 0.:
-            offset_noise = torch.randn(x_start.shape[:2], device = self.device)
-            noise += self.offset_noise_strength * rearrange(offset_noise, 'b c -> b c 1 1')
-
         return (
             extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
             extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )
 
     def p_losses(self, x_start, t, *, classes, noise = None):
-        b, c, h, w = x_start.shape
+
         noise = default(noise, lambda: torch.randn_like(x_start))
 
         # noise sample
-
         x = self.q_sample(x_start = x_start, t = t, noise = noise)
 
         # predict and take gradient step
@@ -750,49 +776,186 @@ class GaussianDiffusion(nn.Module):
             raise ValueError(f'unknown objective {self.objective}')
 
         loss = F.mse_loss(model_out, target, reduction = 'none')
-        loss = reduce(loss, 'b ... -> b (...)', 'mean')  # TODO: # Global average pooling,
+        loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
         return loss.mean()
 
     def forward(self, img, *args, **kwargs):
-        b, c, h, w, device, img_size, = *img.shape, img.device, self.image_size
-        assert h == img_size and w == img_size, f'height and width of image must be {img_size}'
+        b, c, n, device, seq_length, = *img.shape, img.device, self.seq_length
+        assert n == seq_length, f'seq length must be {seq_length}'
         t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
 
-        img = normalize_to_neg_one_to_one(img)
+        img = self.normalize(img)
         return self.p_losses(img, t, *args, **kwargs)
 
-# example
+# trainer class
 
-if __name__ == '__main__':
-    num_classes = 5
+class Trainer1D(object):
+    def __init__(
+        self,
+        diffusion_model: GaussianDiffusion1D,
+        dataset: Dataset,
+        *,
+        train_batch_size = 16,
+        gradient_accumulate_every = 1,
+        train_lr = 1e-4,
+        train_num_steps = 100000,
+        ema_update_every = 10,
+        ema_decay = 0.995,
+        adam_betas = (0.9, 0.99),
+        save_and_sample_every = 1000,
+        num_samples = 25,
+        results_folder = './results',
+        amp = False,
+        mixed_precision_type = 'fp16',
+        split_batches = True,
+        max_grad_norm = 1.
+    ):
+        super().__init__()
 
-    model = Unet(
-        dim = 64,
-        dim_mults = (1, 2, 4, 8),
-        # dim_mults = (1, 2, 4, 8, 16),
-        num_classes = num_classes,
-        cond_drop_prob = 0.5
-    )
+        # accelerator
 
-    diffusion = GaussianDiffusion(
-        model,
-        image_size = 128,
-        timesteps = 10
-    ).cuda()
+        self.accelerator = Accelerator(
+            split_batches = split_batches,
+            mixed_precision = mixed_precision_type if amp else 'no'
+        )
 
-    training_images = torch.randn(8, 3, 128, 128).cuda() # images are normalized from 0 to 1
-    image_classes = torch.randint(0, num_classes, (8,)).cuda()    # say 10 classes
+        # model
 
-    loss = diffusion(training_images, classes = image_classes)
-    loss.backward()
+        self.model = diffusion_model
+        self.channels = diffusion_model.channels
 
-    # do above for many steps
+        # sampling and training hyperparameters
 
-    sampled_images = diffusion.sample(
-        classes = image_classes,
-        cond_scale = 6.                # condition scaling, anything greater than 1 strengthens the classifier free guidance. reportedly 3-8 is good empirically
-    )
+        assert has_int_squareroot(num_samples), 'number of samples must have an integer square root'
+        self.num_samples = num_samples
+        self.save_and_sample_every = save_and_sample_every
 
-    sampled_images.shape # (8, 3, 128, 128)
+        self.batch_size = train_batch_size
+        self.gradient_accumulate_every = gradient_accumulate_every
+        self.max_grad_norm = max_grad_norm
+
+        self.train_num_steps = train_num_steps
+
+        # dataset and dataloader
+
+        dl = DataLoader(dataset, batch_size = train_batch_size, shuffle = True, pin_memory = True, num_workers = cpu_count())
+
+        dl = self.accelerator.prepare(dl)
+        self.dl = cycle(dl)
+
+        # optimizer
+
+        self.opt = Adam(diffusion_model.parameters(), lr = train_lr, betas = adam_betas)
+
+        # for logging results in a folder periodically
+
+        if self.accelerator.is_main_process:
+            self.ema = EMA(diffusion_model, beta = ema_decay, update_every = ema_update_every)
+            self.ema.to(self.device)
+
+        self.results_folder = Path(results_folder)
+        self.results_folder.mkdir(exist_ok = True)
+
+        # step counter state
+
+        self.step = 0
+
+        # prepare model, dataloader, optimizer with accelerator
+
+        self.model, self.opt = self.accelerator.prepare(self.model, self.opt)
+
+    @property
+    def device(self):
+        return self.accelerator.device
+
+    def save(self, milestone):
+        if not self.accelerator.is_local_main_process:
+            return
+
+        data = {
+            'step': self.step,
+            'model': self.accelerator.get_state_dict(self.model),
+            'opt': self.opt.state_dict(),
+            'ema': self.ema.state_dict(),
+            'scaler': self.accelerator.scaler.state_dict() if exists(self.accelerator.scaler) else None,
+            'version': __version__
+        }
+
+        torch.save(data, str(self.results_folder / f'model-{milestone}.pt'))
+
+    def load(self, milestone):
+        accelerator = self.accelerator
+        device = accelerator.device
+
+        data = torch.load(str(self.results_folder / f'model-{milestone}.pt'), map_location=device)
+
+        model = self.accelerator.unwrap_model(self.model)
+        model.load_state_dict(data['model'])
+
+        self.step = data['step']
+        self.opt.load_state_dict(data['opt'])
+        if self.accelerator.is_main_process:
+            self.ema.load_state_dict(data["ema"])
+
+        if 'version' in data:
+            print(f"loading from version {data['version']}")
+
+        if exists(self.accelerator.scaler) and exists(data['scaler']):
+            self.accelerator.scaler.load_state_dict(data['scaler'])
+
+    def train(self):
+        accelerator = self.accelerator
+        device = accelerator.device
+
+        with tqdm(initial = self.step, total = self.train_num_steps, disable = not accelerator.is_main_process) as pbar:
+
+            while self.step < self.train_num_steps:
+
+                total_loss = 0.
+
+                for _ in range(self.gradient_accumulate_every):
+                    # data = next(self.dl).to(device)
+
+                    # Unpack data into training_sequence and training_classes
+                    training_sequence, training_classes = next(self.dl)
+                    training_sequence, training_classes = training_sequence.to(device), training_classes.to(device)
+
+                    with self.accelerator.autocast():
+                        loss = self.model(training_sequence, classes=training_classes)
+                        loss = loss / self.gradient_accumulate_every
+                        total_loss += loss.item()
+
+                    self.accelerator.backward(loss)
+
+                pbar.set_description(f'loss: {total_loss:.4f}')
+
+                accelerator.wait_for_everyone()
+                accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+
+                self.opt.step()
+                self.opt.zero_grad()
+
+                accelerator.wait_for_everyone()
+
+                self.step += 1
+                if accelerator.is_main_process:
+                    self.ema.update()
+
+                    if self.step != 0 and self.step % self.save_and_sample_every == 0:
+                        self.ema.ema_model.eval()
+
+                        with torch.no_grad():
+                            milestone = self.step // self.save_and_sample_every
+                            batches = num_to_groups(self.num_samples, self.batch_size)
+                            all_samples_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
+
+                        all_samples = torch.cat(all_samples_list, dim = 0)
+
+                        torch.save(all_samples, str(self.results_folder / f'sample-{milestone}.png'))
+                        self.save(milestone)
+
+                pbar.update(1)
+
+        accelerator.print('training complete')
