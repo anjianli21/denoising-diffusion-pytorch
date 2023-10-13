@@ -426,7 +426,9 @@ class Unet1D(nn.Module):
                 torch.tensor(0.0).cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
             )
         # TODO: embed the class to the conditional variable c
-        c = self.classes_mlp(classes_emb)
+            c = self.classes_mlp(classes_emb)
+        else:
+            c = self.classes_mlp(classes)
         ################################################################################################################
 
         # Unet
