@@ -1,19 +1,19 @@
 import torch
-from denoising_diffusion_pytorch.classifier_free_guidance_1d import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
 from torch.utils.data import TensorDataset
 
 
 def main():
 
-    num_classes = 5
+    class_dim = 5
 
     model = Unet1D(
         dim=64,
         channels=3,
         dim_mults=(1, 2, 4),
         # dim_mults = (1, 2, 4, 8, 16),
-        num_classes=num_classes,
-        cond_drop_prob=0.2
+        class_dim=class_dim,
+        cond_drop_prob=0.1
     )
 
     diffusion = GaussianDiffusion1D(
@@ -25,7 +25,7 @@ def main():
 
     training_data_num = 64
     training_seq = torch.rand(training_data_num, 3, 20)  # images are normalized from 0 to 1
-    training_seq_classes = torch.randint(0, num_classes, (training_data_num,))  # say 10 classes
+    training_seq_classes = torch.rand(training_data_num, 5)  # say 10 classes
     dataset = TensorDataset(training_seq, training_seq_classes)
 
     # TODO: one loss step ##################################################
