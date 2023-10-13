@@ -1,7 +1,8 @@
 import torch
 from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
 from torch.utils.data import TensorDataset
-
+import pickle
+import numpy as np
 
 def main():
 
@@ -23,9 +24,20 @@ def main():
         objective='pred_v'
     ).cuda()
 
-    training_data_num = 64
-    training_seq = torch.rand(training_data_num, 3, 20)  # images are normalized from 0 to 1
-    training_seq_classes = torch.rand(training_data_num, 5)  # say 10 classes
+    # # Random dataset
+    # training_data_num = 64
+    # training_seq = torch.rand(training_data_num, 3, 20)  # images are normalized from 0 to 1
+    # training_seq_classes = torch.rand(training_data_num, 5)  # say 10 classes
+    # dataset = TensorDataset(training_seq, training_seq_classes)
+
+    # CR3BP dataset
+    data_path = "data/CR3BP/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl"
+    with open(data_path, "rb") as f:
+        data = pickle.load(f)
+    x = data[:, 5:].astype(np.float32).reshape(data.shape[0], 3, 20)
+    c = data[:, :5].astype(np.float32)
+    training_seq = torch.tensor(x)
+    training_seq_classes = torch.tensor(c)
     dataset = TensorDataset(training_seq, training_seq_classes)
 
     # TODO: one loss step ##################################################
@@ -36,9 +48,9 @@ def main():
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
-        train_batch_size=32,
+        train_batch_size=1024,
         train_lr=8e-5,
-        train_num_steps=100,  # total training steps
+        train_num_steps=1000,  # total training steps
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
         amp=True,  # turn on mixed precision
@@ -48,7 +60,7 @@ def main():
 
     # do above for many steps
     sampled_images = diffusion.sample(
-        classes=training_seq_classes.cuda(),
+        classes=training_seq_classes[:10, :].cuda(),
         cond_scale=6.,
         # condition scaling, anything greater than 1 strengthens the classifier free guidance. reportedly 3-8 is good empirically
     )

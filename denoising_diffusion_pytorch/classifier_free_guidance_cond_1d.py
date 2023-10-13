@@ -941,18 +941,18 @@ class Trainer1D(object):
                 if accelerator.is_main_process:
                     self.ema.update()
 
-                    if self.step != 0 and self.step % self.save_and_sample_every == 0:
-                        self.ema.ema_model.eval()
-
-                        with torch.no_grad():
-                            milestone = self.step // self.save_and_sample_every
-                            batches = num_to_groups(self.num_samples, self.batch_size)
-                            all_samples_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
-
-                        all_samples = torch.cat(all_samples_list, dim = 0)
-
-                        torch.save(all_samples, str(self.results_folder / f'sample-{milestone}.png'))
-                        self.save(milestone)
+                    # if self.step != 0 and self.step % self.save_and_sample_every == 0:
+                    #     self.ema.ema_model.eval()
+                    #
+                    #     with torch.no_grad():
+                    #         milestone = self.step // self.save_and_sample_every
+                    #         batches = num_to_groups(self.num_samples, self.batch_size)
+                    #         # all_samples_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
+                    #
+                    #     all_samples = torch.cat(all_samples_list, dim = 0)
+                    #
+                    #     torch.save(all_samples, str(self.results_folder / f'sample-{milestone}.png'))
+                    #     self.save(milestone)
 
                 pbar.update(1)
 
