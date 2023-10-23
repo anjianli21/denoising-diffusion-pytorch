@@ -3,6 +3,8 @@ from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D,
 from torch.utils.data import TensorDataset
 import pickle
 import numpy as np
+from datetime import datetime
+
 
 def main():
 
@@ -45,16 +47,19 @@ def main():
     # loss.backward()
     #
     # TODO: use trainer ###################################################
+
+    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    results_folder = f"/home/anjian/Desktop/project/denoising-diffusion-pytorch/results/{current_time}"
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
         train_batch_size=1024,
         train_lr=8e-5,
-        train_num_steps=1000,  # total training steps
+        train_num_steps=30000,  # total training steps
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
         amp=True,  # turn on mixed precision
-        results_folder="/home/anjian/Desktop/project/denoising-diffusion-pytorch/results",
+        results_folder=results_folder,
     )
     trainer.train()
 
