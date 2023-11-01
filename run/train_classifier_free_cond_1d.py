@@ -49,7 +49,7 @@ def main():
     # TODO: use trainer ###################################################
 
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    results_folder = f"/home/anjian/Desktop/project/denoising-diffusion-pytorch/results/{current_time}"
+    results_folder = f"results/{current_time}"
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
