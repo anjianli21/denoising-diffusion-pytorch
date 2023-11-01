@@ -6,6 +6,10 @@ Classifier free 1D conditional diffusion model.
 
 Creat a folder "/data/CR3BP" and put the dataset "cr3bp_time_mass_alpha_control_part_4_250k_each.pkl" under this folder.
 
+## Environment configuration
+
+Refer to "setup.py".
+
 ## Usage: training
 
 
