@@ -20,6 +20,8 @@ from ema_pytorch import EMA
 
 from datetime import datetime
 import wandb
+import os
+import copy
 
 from tqdm.auto import tqdm
 
@@ -295,9 +297,7 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b (h d) n')
         return self.to_out(out)
 
-
 # model
-
 class Unet1D(nn.Module):
     def __init__(
             self,
@@ -307,6 +307,7 @@ class Unet1D(nn.Module):
             init_dim=None,
             out_dim=None,
             dim_mults=(1, 2, 4, 8),
+            embed_class_layers_dims=(64, 64),
             channels=3,
             self_condition=False,
             resnet_block_groups=4,  # TODO: previously resnet_block_groups = 8
@@ -324,15 +325,19 @@ class Unet1D(nn.Module):
         self.cond_drop_prob = cond_drop_prob
 
         # determine dimensions
+        self.dim = dim
+        self.dim_mults = dim_mults
+        self.embed_class_layers_dims = embed_class_layers_dims
+
         self.channels = channels
         self.self_condition = self_condition
         input_channels = channels * (2 if self_condition else 1)
 
-        init_dim = default(init_dim, dim)
+        init_dim = default(init_dim, self.dim)
         self.init_conv = nn.Conv1d(input_channels, init_dim, 7,
                                    padding=3)  # TODO: currently the init convolution uses a kernel size = 7
 
-        dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
+        dims = [init_dim, *map(lambda m: self.dim * m, self.dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
 
         # TODO: partial function is used to create a "partial" version of a function. You can think of it as pre-setting some arguments of a function.
@@ -340,7 +345,7 @@ class Unet1D(nn.Module):
         block_klass = partial(ResnetBlock, groups=resnet_block_groups)
 
         # time embeddings
-        time_dim = dim * 4
+        time_dim = self.dim * 4
 
         self.random_or_learned_sinusoidal_cond = learned_sinusoidal_cond or random_fourier_features
 
@@ -348,8 +353,8 @@ class Unet1D(nn.Module):
             sinu_pos_emb = RandomOrLearnedSinusoidalPosEmb(learned_sinusoidal_dim, random_fourier_features)
             fourier_dim = learned_sinusoidal_dim + 1
         else:
-            sinu_pos_emb = SinusoidalPosEmb(dim, theta=sinusoidal_pos_emb_theta)
-            fourier_dim = dim
+            sinu_pos_emb = SinusoidalPosEmb(self.dim, theta=sinusoidal_pos_emb_theta)
+            fourier_dim = self.dim
 
         self.time_mlp = nn.Sequential(
             sinu_pos_emb,
@@ -359,12 +364,15 @@ class Unet1D(nn.Module):
         )
 
         # TODO: class embeddings ##, define the conditional embedding ####################################################
-        embedded_classes_dim = dim * 4
-        self.classes_mlp = nn.Sequential(
-            nn.Linear(class_dim, embedded_classes_dim),
-            nn.GELU(),
-            nn.Linear(embedded_classes_dim, embedded_classes_dim)
-        )
+        # embedded_classes_dim = self.dim * 4
+        # self.classes_mlp = nn.Sequential(
+        #     nn.Linear(class_dim, embedded_classes_dim),
+        #     nn.GELU(),
+        #     nn.Linear(embedded_classes_dim, embedded_classes_dim)
+        # )
+
+        self.classes_mlp = self.build_classes_mlp(class_dim, self.embed_class_layers_dims)
+        embedded_classes_dim = self.embed_class_layers_dims[-1]
         ###############################################################################################################
 
         # layers
@@ -400,8 +408,21 @@ class Unet1D(nn.Module):
         default_out_dim = channels * (1 if not learned_variance else 2)
         self.out_dim = default(out_dim, default_out_dim)
 
-        self.final_res_block = block_klass(dim * 2, dim, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim)
-        self.final_conv = nn.Conv1d(dim, self.out_dim, 1)
+        self.final_res_block = block_klass(self.dim * 2, self.dim, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim)
+        self.final_conv = nn.Conv1d(self.dim, self.out_dim, 1)
+
+    def build_classes_mlp(self, class_dim, embed_class_layers_dims):
+
+        layers = []
+        input_dim = copy.copy(class_dim)
+        for output_dim in embed_class_layers_dims:
+            layers.append(nn.Linear(input_dim, output_dim))
+            layers.append(nn.GELU())
+            input_dim = output_dim
+
+        layers.pop()
+
+        return nn.Sequential(*layers)
 
     # TODO: classifier free guidance loss, set conditional scale to be w,
     def forward_with_cond_scale(
@@ -482,6 +503,7 @@ class Unet1D(nn.Module):
         x = self.mid_block2(x, t, c)
 
         for block1, block2, attn, upsample in self.ups:
+
             x = torch.cat((x, h.pop()), dim=1)
             x = block1(x, t, c)
 
@@ -541,9 +563,8 @@ class GaussianDiffusion1D(nn.Module):
         super().__init__()
         self.model = model
         self.channels = self.model.channels
-
         self.seq_length = seq_length
-
+        self.timesteps = timesteps
         self.objective = objective
 
         assert objective in {'pred_noise', 'pred_x0',
@@ -551,9 +572,9 @@ class GaussianDiffusion1D(nn.Module):
 
         # define beta schedule
         if beta_schedule == 'linear':
-            betas = linear_beta_schedule(timesteps)
+            betas = linear_beta_schedule(self.timesteps)
         elif beta_schedule == 'cosine':
-            betas = cosine_beta_schedule(timesteps)
+            betas = cosine_beta_schedule(self.timesteps)
         else:
             raise ValueError(f'unknown beta schedule {beta_schedule}')
 
@@ -565,7 +586,7 @@ class GaussianDiffusion1D(nn.Module):
         self.num_timesteps = int(timesteps)
 
         # sampling related parameters
-
+        # If sampling_timesteps is not defined, then use the number of training timesteps
         self.sampling_timesteps = default(sampling_timesteps,
                                           timesteps)  # default num sampling timesteps to number of timesteps at training
 
@@ -574,7 +595,6 @@ class GaussianDiffusion1D(nn.Module):
         self.ddim_sampling_eta = ddim_sampling_eta
 
         # helper function to register buffer from float64 to float32
-
         register_buffer = lambda name, val: self.register_buffer(name, val.to(torch.float32))
 
         register_buffer('betas', betas)
@@ -582,7 +602,6 @@ class GaussianDiffusion1D(nn.Module):
         register_buffer('alphas_cumprod_prev', alphas_cumprod_prev)
 
         # calculations for diffusion q(x_t | x_{t-1}) and others
-
         register_buffer('sqrt_alphas_cumprod', torch.sqrt(alphas_cumprod))
         register_buffer('sqrt_one_minus_alphas_cumprod', torch.sqrt(1. - alphas_cumprod))
         register_buffer('log_one_minus_alphas_cumprod', torch.log(1. - alphas_cumprod))
@@ -590,21 +609,17 @@ class GaussianDiffusion1D(nn.Module):
         register_buffer('sqrt_recipm1_alphas_cumprod', torch.sqrt(1. / alphas_cumprod - 1))
 
         # calculations for posterior q(x_{t-1} | x_t, x_0)
-
         posterior_variance = betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
 
         # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
-
         register_buffer('posterior_variance', posterior_variance)
 
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
-
         register_buffer('posterior_log_variance_clipped', torch.log(posterior_variance.clamp(min=1e-20)))
         register_buffer('posterior_mean_coef1', betas * torch.sqrt(alphas_cumprod_prev) / (1. - alphas_cumprod))
         register_buffer('posterior_mean_coef2', (1. - alphas_cumprod_prev) * torch.sqrt(alphas) / (1. - alphas_cumprod))
 
         # calculate loss weight
-
         snr = alphas_cumprod / (1 - alphas_cumprod)
 
         if objective == 'pred_noise':
@@ -617,7 +632,6 @@ class GaussianDiffusion1D(nn.Module):
         register_buffer('loss_weight', loss_weight)
 
         # whether to autonormalize
-
         self.normalize = normalize_to_neg_one_to_one if auto_normalize else identity
         self.unnormalize = unnormalize_to_zero_to_one if auto_normalize else identity
 
@@ -852,20 +866,43 @@ class Trainer1D(object):
     ):
         super().__init__()
 
-        # accelerator
+        ##########################################################################################
+        # Initialize wandb
+        api_key = "0349e936b3e168fb936ff7d6e5bc1a0db52110d5"
+        if api_key:
+            wandb.login(key=api_key)
+        else:
+            raise Exception("not api key for wandb")
+        hyperparameters = {
+            'unet_dim': diffusion_model.model.dim,
+            'unet_dim_mults': diffusion_model.model.dim_mults,
+            'embed_class_layers_dims': diffusion_model.model.embed_class_layers_dims,
+            'timesteps': diffusion_model.timesteps,
+            'objective': diffusion_model.objective,
+            'batch_size': train_batch_size
+        }
 
+        # Generate a unique name for the run
+        run_name = f"unet_dim: {hyperparameters['unet_dim']}, unet_mults: ({','.join(map(str, hyperparameters['unet_dim_mults']))}), " \
+                   f"embed_class_layer: ({','.join(map(str, hyperparameters['embed_class_layers_dims']))}), " \
+                   f"steps: {hyperparameters['timesteps']}, obj: {hyperparameters['objective']}, " \
+                   f"batch_size: {hyperparameters['batch_size']}"
+
+        wandb.init(project='diffusion_for_cr3bp', name=run_name, config=hyperparameters)
+
+        ############################################################################################
+        # Configure the trainer
+        # accelerator
         self.accelerator = Accelerator(
             split_batches=split_batches,
             mixed_precision=mixed_precision_type if amp else 'no'
         )
 
         # model
-
         self.model = diffusion_model
         self.channels = diffusion_model.channels
 
         # sampling and training hyperparameters
-
         assert has_int_squareroot(num_samples), 'number of samples must have an integer square root'
         self.num_samples = num_samples
         self.save_and_sample_every = save_and_sample_every
@@ -909,10 +946,7 @@ class Trainer1D(object):
             self.ema = EMA(diffusion_model, beta=ema_decay, update_every=ema_update_every)
             self.ema.to(self.device)
 
-        # TODO: Generate a folder name based on the current date and time
-        # current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        # self.results_folder = Path(results_folder) / current_time
-        # self.results_folder.mkdir(parents=True, exist_ok=True)
+        # configure the results folder
         self.results_folder = Path(results_folder)
         self.results_folder.mkdir(parents=True, exist_ok = True)
 
@@ -969,23 +1003,13 @@ class Trainer1D(object):
         accelerator = self.accelerator
         device = accelerator.device
 
-        # Initialize wandb
-        wandb.init(project="conditional_diffusion_1d", name=f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                   config={
-                       "batch_size": self.batch_size,
-                       "learning_rate": self.train_lr,
-                       # ... any other hyperparameters or settings you want to log
-                   })
-
-        # Watch your model
-        wandb.watch(self.model)
-
         with tqdm(initial=self.step, total=self.train_num_steps, disable=not accelerator.is_main_process) as pbar:
 
             while self.step < self.train_num_steps:
 
                 total_loss = 0.
 
+                # Compute gradient for number of self.gradient_accumulate_every steps
                 for _ in range(self.gradient_accumulate_every):
                     # data = next(self.train_dl).to(device)
 
@@ -1000,13 +1024,10 @@ class Trainer1D(object):
 
                     self.accelerator.backward(loss)
 
-                # Log the accumulated loss to wandb
-                if accelerator.is_main_process:
-                    wandb.log({
-                        "training_loss": total_loss
-                    })
-
                 pbar.set_description(f'loss: {total_loss:.4f}')
+
+                # Log training loss
+                wandb.log({'train_loss': total_loss, 'step': self.step})
 
                 accelerator.wait_for_everyone()
                 accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
@@ -1020,29 +1041,17 @@ class Trainer1D(object):
                 if accelerator.is_main_process:
                     self.ema.update()
 
-                    # if self.step != 0 and self.step % self.save_and_sample_every == 0:
-                    #     self.ema.ema_model.eval()
-                    #
-                    #     with torch.no_grad():
-                    #         milestone = self.step // self.save_and_sample_every
-                    #         batches = num_to_groups(self.num_samples, self.batch_size)
-                    # all_samples_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
-
-                    # all_samples = torch.cat(all_samples_list, dim = 0)
-                    # torch.save(all_samples, str(self.results_folder / f'sample-{milestone}.png'))
-
-                    # self.save(milestone)
-
                     if self.step % self.batches_per_epoch == 0 and self.step != 0:
                         milestone = self.step // self.batches_per_epoch  # this gives us the epoch number
                         self.save(f"epoch-{milestone}")
+                        print(f"Epoch {milestone} model saved")
 
                         val_loss = self.compute_validation_loss()
-                        wandb.log({"validation_loss": val_loss})
+
+                        # Log validation loss
+                        wandb.log({'val_loss': val_loss, 'epoch': milestone})
 
                 pbar.update(1)
-
-        wandb.finish()  # This marks the run as finished
 
         accelerator.print('training complete')
 

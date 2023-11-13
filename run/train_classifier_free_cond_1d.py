@@ -5,25 +5,39 @@ import pickle
 import numpy as np
 from datetime import datetime
 
+import argparse
 
 def main():
 
+    ####################################################################################################################
+    # Parse the arguments
+    args = parse_args()
+    unet_dim = args.unet_dim
+    unet_dim_mults = args.unet_dim_mults
+    embed_class_layers_dims = args.embed_class_layers_dims
+    timesteps = args.timesteps
+    objective = args.objective
+    batch_size = args.batch_size
+
+    ####################################################################################################################
+    # Build the model
     class_dim = 5
 
     model = Unet1D(
-        dim=64,
+        dim=unet_dim,
         channels=3,
-        dim_mults=(1, 2, 4),
-        # dim_mults = (1, 2, 4, 8, 16),
+        dim_mults=unet_dim_mults,
+        embed_class_layers_dims=embed_class_layers_dims,
         class_dim=class_dim,
         cond_drop_prob=0.1
     )
 
     diffusion = GaussianDiffusion1D(
-        model,
+        model=model,
         seq_length=20,
-        timesteps=1000,
-        objective='pred_v'
+        timesteps=timesteps,
+        objective=objective,
+        # objective='pred_noise',
     ).cuda()
 
     # # Random dataset
@@ -53,7 +67,7 @@ def main():
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
-        train_batch_size=1024,
+        train_batch_size=batch_size,
         train_lr=8e-5,
         train_num_steps=30000,  # total training steps
         gradient_accumulate_every=2,  # gradient accumulation steps
@@ -64,14 +78,50 @@ def main():
     trainer.train()
 
     # do above for many steps
-    sampled_images = diffusion.sample(
+    sampled_seq = diffusion.sample(
         classes=training_seq_classes[:10, :].cuda(),
         cond_scale=6.,
         # condition scaling, anything greater than 1 strengthens the classifier free guidance. reportedly 3-8 is good empirically
     )
 
-    print(sampled_images.shape)  # (64, 3, 20)
+    print(sampled_seq.shape)  # (64, 3, 20)
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Hyperparameter tuning for diffusion models")
+
+    # Unet 1D parameters
+    parser.add_argument('--unet_dim',
+                        type=int,
+                        default=64,
+                        help='Dimension of the first layer of Unet')
+    parser.add_argument('--unet_dim_mults',
+                        nargs='+',
+                        type=tuple,
+                        default=(1, 2, 4),
+                        help='List of dimension multipliers for Unet, currently at most 4 layers since we can only downsample 20 dim 4 times.')
+    parser.add_argument('--embed_class_layers_dims',
+                        type=tuple,
+                        default=(256, 256),
+                        help='List of dimension for embedding class layers')
+
+    # GaussianDiffusion1D parameters
+    parser.add_argument('--timesteps',
+                        type=int,
+                        default=1000,
+                        help='Timesteps for the diffusion process')
+    parser.add_argument('--objective',
+                        type=str,
+                        default='pred_v',
+                        choices=['pred_v', 'pred_noise'],
+                        help='Objectives for the diffusion model')
+
+    # Trainer1D parameters
+    parser.add_argument('--batch_size',
+                        type=int,
+                        default=1024,
+                        help='Batch size for training')
+
+    return parser.parse_args()
 
 if __name__ == "__main__":
     main()
