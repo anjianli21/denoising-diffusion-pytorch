@@ -869,10 +869,11 @@ class Trainer1D(object):
         ##########################################################################################
         # Initialize wandb
         api_key = "0349e936b3e168fb936ff7d6e5bc1a0db52110d5"
-        if api_key:
-            wandb.login(key=api_key)
-        else:
-            raise Exception("not api key for wandb")
+        # if api_key:
+        #     wandb.login(key=api_key)
+        # else:
+        #     raise Exception("not api key for wandb")
+        wandb.login()
         hyperparameters = {
             'unet_dim': diffusion_model.model.dim,
             'unet_dim_mults': diffusion_model.model.dim_mults,
