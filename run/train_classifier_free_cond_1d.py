@@ -1,3 +1,8 @@
+import sys
+
+sys.path.append('../')
+sys.path.append('./')
+
 import torch
 from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
 from torch.utils.data import TensorDataset
