@@ -11,7 +11,6 @@
 #SBATCH --mail-type=all 	      	# send email when job starts, fails and ends
 #SBATCH --mail-user=anjianl@princeton.edu
 #SBATCH --array=0
-#SBATCH --port=$(get_free_port)
 
 echo "SLURM_JOBID: " $SLURM_JOBID
 echo "SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
@@ -20,4 +19,6 @@ echo "SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 module purge
 module load anaconda3/2021.11
 conda activate pydylan
+export WANDB_DIR='/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb'
+export WANDB_MODE=offline
 python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d.py --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl
