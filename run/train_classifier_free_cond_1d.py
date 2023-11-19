@@ -18,6 +18,7 @@ def main():
     timesteps = args.timesteps
     objective = args.objective
     batch_size = args.batch_size
+    data_path = args.data_path
 
     ####################################################################################################################
     # Build the model
@@ -47,7 +48,7 @@ def main():
     # dataset = TensorDataset(training_seq, training_seq_classes)
 
     # CR3BP dataset
-    data_path = "data/CR3BP/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl"
+    # data_path = "data/CR3BP/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl"
     with open(data_path, "rb") as f:
         data = pickle.load(f)
     x = data[:, 5:].astype(np.float32).reshape(data.shape[0], 3, 20)
@@ -120,6 +121,10 @@ def parse_args():
                         type=int,
                         default=1024,
                         help='Batch size for training')
+    parser.add_argument('--data_path',
+                        type=str,
+                        default="data/CR3BP/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl",
+                        help="cr3bp data path")
 
     return parser.parse_args()
 
