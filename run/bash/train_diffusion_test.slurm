@@ -11,6 +11,7 @@
 #SBATCH --mail-type=all 	      	# send email when job starts, fails and ends
 #SBATCH --mail-user=anjianl@princeton.edu
 #SBATCH --array=0
+#SBATCH --port=$(get_free_port)
 
 echo "SLURM_JOBID: " $SLURM_JOBID
 echo "SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
