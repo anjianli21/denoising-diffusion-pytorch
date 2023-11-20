@@ -21,5 +21,4 @@ module load anaconda3/2021.11
 conda activate pydylan
 export WANDB_DIR='/scratch/gpfs/al5844/project/denoising-diffusion-pytorch'
 export WANDB_MODE=offline
-python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d.py --unet_dim 64 --unet_dim_mults "(1, 2, 4)" --embed_class_layers_dims (256, 256) --timesteps 1000 --objective pred_v --batch_size 1024 --machine della --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl
 python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d.py --unet_dim 64 --unet_dim_mults "1,2,4" --embed_class_layers_dims "256,256" --timesteps 1000 --objective pred_v --batch_size 1024 --machine della --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl
