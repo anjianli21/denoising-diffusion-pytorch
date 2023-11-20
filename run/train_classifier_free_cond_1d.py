@@ -19,8 +19,8 @@ def main():
     args = parse_args()
     machine = args.machine
     unet_dim = args.unet_dim
-    unet_dim_mults = args.unet_dim_mults
-    embed_class_layers_dims = args.embed_class_layers_dims
+    unet_dim_mults = tuple(map(int, args.unet_dim_mults.split(',')))
+    embed_class_layers_dims = tuple(map(int, args.embed_class_layers_dims.split(',')))
     timesteps = args.timesteps
     objective = str(args.objective)
     batch_size = args.batch_size
@@ -77,12 +77,15 @@ def main():
         results_folder = f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
         num_workers = 1
 
+    step_per_epoch = int(data.shape[0] / batch_size)
+    max_epoch = 150
+
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
         train_batch_size=batch_size,
         train_lr=8e-5,
-        train_num_steps=60000,  # total training steps
+        train_num_steps=step_per_epoch * max_epoch,  # total training steps
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
         amp=True,  # turn on mixed precision
@@ -115,13 +118,12 @@ def parse_args():
                         default=64,
                         help='Dimension of the first layer of Unet')
     parser.add_argument('--unet_dim_mults',
-                        nargs='+',
-                        type=tuple,
-                        default=(1, 2, 4),
+                        type=str,
+                        default="1,2,4",
                         help='List of dimension multipliers for Unet, currently at most 4 layers since we can only downsample 20 dim 4 times.')
     parser.add_argument('--embed_class_layers_dims',
-                        type=tuple,
-                        default=(256, 256),
+                        type=str,
+                        default="256,256",
                         help='List of dimension for embedding class layers')
 
     # GaussianDiffusion1D parameters
