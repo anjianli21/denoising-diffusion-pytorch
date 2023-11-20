@@ -22,7 +22,7 @@ def main():
     unet_dim_mults = args.unet_dim_mults
     embed_class_layers_dims = args.embed_class_layers_dims
     timesteps = args.timesteps
-    objective = args.objective
+    objective = str(args.objective)
     batch_size = args.batch_size
     data_path = args.data_path
 
@@ -75,7 +75,7 @@ def main():
         num_workers = 1
     elif machine == "della":
         results_folder = f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
-        num_workers = 4
+        num_workers = 1
 
     trainer = Trainer1D(
         diffusion_model=diffusion,
