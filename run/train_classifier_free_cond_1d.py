@@ -17,6 +17,7 @@ def main():
     ####################################################################################################################
     # Parse the arguments
     args = parse_args()
+    machine = args.machine
     unet_dim = args.unet_dim
     unet_dim_mults = args.unet_dim_mults
     embed_class_layers_dims = args.embed_class_layers_dims
@@ -69,7 +70,11 @@ def main():
     # TODO: use trainer ###################################################
 
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    results_folder = f"results/{current_time}"
+    if machine == "ubuntu":
+        results_folder = f"results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
+    elif machine == "della":
+        results_folder = f"results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
+
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
@@ -94,6 +99,12 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for diffusion models")
+
+    # Machine
+    parser.add_argument('--machine',
+                        type=str,
+                        default="ubuntu",
+                        help="Machine to run this code")
 
     # Unet 1D parameters
     parser.add_argument('--unet_dim',
