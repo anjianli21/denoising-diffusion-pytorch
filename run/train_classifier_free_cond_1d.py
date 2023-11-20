@@ -72,19 +72,22 @@ def main():
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     if machine == "ubuntu":
         results_folder = f"results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
+        num_workers = 1
     elif machine == "della":
         results_folder = f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
+        num_workers = 4
 
     trainer = Trainer1D(
         diffusion_model=diffusion,
         dataset=dataset,
         train_batch_size=batch_size,
         train_lr=8e-5,
-        train_num_steps=30000,  # total training steps
+        train_num_steps=60000,  # total training steps
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
         amp=True,  # turn on mixed precision
         results_folder=results_folder,
+        num_workers=num_workers
     )
     trainer.train()
 

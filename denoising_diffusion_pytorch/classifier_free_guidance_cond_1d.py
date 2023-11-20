@@ -862,7 +862,8 @@ class Trainer1D(object):
             amp=False,
             mixed_precision_type='fp16',
             split_batches=True,
-            max_grad_norm=1.
+            max_grad_norm=1.,
+            num_workers=1,
     ):
         super().__init__()
 
@@ -928,9 +929,13 @@ class Trainer1D(object):
 
         # Create separate dataloaders
         train_dl = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True, pin_memory=True,
-                              num_workers=cpu_count())
+                              num_workers=num_workers)
         val_dl = DataLoader(val_dataset, batch_size=train_batch_size, shuffle=False, pin_memory=True,
-                            num_workers=cpu_count())
+                            num_workers=num_workers)
+        # train_dl = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True, pin_memory=True,
+        #                       num_workers=cpu_count())
+        # val_dl = DataLoader(val_dataset, batch_size=train_batch_size, shuffle=False, pin_memory=True,
+        #                     num_workers=cpu_count())
 
         train_dl = self.accelerator.prepare(train_dl)
         val_dl = self.accelerator.prepare(val_dl)
@@ -1006,6 +1011,9 @@ class Trainer1D(object):
 
         with tqdm(initial=self.step, total=self.train_num_steps, disable=not accelerator.is_main_process) as pbar:
 
+            # Define a variable to track the best validation loss
+            best_val_loss = torch.tensor(float("inf"))
+
             while self.step < self.train_num_steps:
 
                 total_loss = 0.
@@ -1044,13 +1052,22 @@ class Trainer1D(object):
 
                     if self.step % self.batches_per_epoch == 0 and self.step != 0:
                         milestone = self.step // self.batches_per_epoch  # this gives us the epoch number
-                        self.save(f"epoch-{milestone}")
-                        print(f"Epoch {milestone} model saved")
+                        # self.save(f"epoch-{milestone}")
+                        # print(f"Epoch {milestone} model saved")
 
                         val_loss = self.compute_validation_loss()
 
                         # Log validation loss
                         wandb.log({'val_loss': val_loss, 'epoch': milestone})
+
+                        # Save checkpoint every 5 epochs or if the validation loss is the best so far
+                        if milestone % 5 == 0 or val_loss < best_val_loss:
+                            self.save(f"epoch-{milestone}")
+                            print(f"Epoch {milestone} model saved")
+
+                            # Update the best validation loss
+                            if val_loss < best_val_loss:
+                                best_val_loss = val_loss
 
                 pbar.update(1)
 
