@@ -73,7 +73,7 @@ def main():
     if machine == "ubuntu":
         results_folder = f"results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
     elif machine == "della":
-        results_folder = f"results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
+        results_folder = f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/unet_{unet_dim}_mults_{unet_dim_mults}_embed_class_{embed_class_layers_dims}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}/{current_time}"
 
     trainer = Trainer1D(
         diffusion_model=diffusion,
