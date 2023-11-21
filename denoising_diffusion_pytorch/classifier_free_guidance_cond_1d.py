@@ -966,6 +966,9 @@ class Trainer1D(object):
         self.batches_per_epoch = len(dataset) // self.batch_size
         self.train_lr = train_lr
 
+        # Save the best checkpoints
+        self.best_checkpoints = []
+
     @property
     def device(self):
         return self.accelerator.device
@@ -1052,8 +1055,7 @@ class Trainer1D(object):
 
                     if self.step % self.batches_per_epoch == 0 and self.step != 0:
                         milestone = self.step // self.batches_per_epoch  # this gives us the epoch number
-                        # self.save(f"epoch-{milestone}")
-                        # print(f"Epoch {milestone} model saved")
+                        print(f"Epoch {milestone}")
 
                         val_loss = self.compute_validation_loss()
 
@@ -1061,19 +1063,27 @@ class Trainer1D(object):
                         wandb.log({'val_loss': val_loss, 'epoch': milestone})
 
                         # Save checkpoint every 5 epochs or if the validation loss is the best so far
-                        # only save checkpoint that are > 50 or < 5 (<5 mainly for testing)
-                        if milestone >= 50 or milestone <= 5:
-                            if milestone % 5 == 0 or val_loss < best_val_loss:
-                                self.save(f"epoch-{milestone}")
-                                print(f"Epoch {milestone} model saved")
+                        self.save(f"epoch-{milestone}")
 
-                                # Update the best validation loss
-                                if val_loss < best_val_loss:
-                                    best_val_loss = val_loss
+                        # Update the best validation loss and checkpoints
+                        if val_loss < best_val_loss:
+                            best_val_loss = val_loss
+                            self.update_best_checkpoints(val_loss, f"epoch-{milestone}")
 
                 pbar.update(1)
 
         accelerator.print('training complete')
+
+    def update_best_checkpoints(self, val_loss, milestone):
+        # Adding the new checkpoint and sorting
+        self.best_checkpoints.append((val_loss, str(self.results_folder / f'model-{milestone}.pt')))
+        self.best_checkpoints.sort(key=lambda x: x[0])
+
+        # Keeping only top 3 checkpoints
+        if len(self.best_checkpoints) > 3:
+            _, checkpoint_to_remove = self.best_checkpoints.pop(3)  # Remove the 4th checkpoint
+            if os.path.exists(checkpoint_to_remove):
+                os.remove(checkpoint_to_remove)  # Delete the checkpoint file
 
     def compute_validation_loss(self):
         self.model.eval()  # Set model to evaluation mode
