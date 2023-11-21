@@ -1062,11 +1062,9 @@ class Trainer1D(object):
                         # Log validation loss
                         wandb.log({'val_loss': val_loss, 'epoch': milestone})
 
-                        # Save checkpoint every 5 epochs or if the validation loss is the best so far
-                        self.save(f"epoch-{milestone}")
-
-                        # Update the best validation loss and checkpoints
+                        # If validation loss is decreasing, save checkpoint Update the best validation loss and checkpoints
                         if val_loss < best_val_loss:
+                            self.save(f"epoch-{milestone}")
                             best_val_loss = val_loss
                             self.update_best_checkpoints(val_loss, f"epoch-{milestone}")
 
