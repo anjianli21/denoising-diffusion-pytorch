@@ -1077,8 +1077,8 @@ class Trainer1D(object):
         self.best_checkpoints.append((val_loss, str(self.results_folder / f'model-{milestone}.pt')))
         self.best_checkpoints.sort(key=lambda x: x[0])
 
-        # Keeping only top 3 checkpoints
-        if len(self.best_checkpoints) > 3:
+        # Keeping only top 2 checkpoints
+        if len(self.best_checkpoints) > 2:
             _, checkpoint_to_remove = self.best_checkpoints.pop(3)  # Remove the 4th checkpoint
             if os.path.exists(checkpoint_to_remove):
                 os.remove(checkpoint_to_remove)  # Delete the checkpoint file

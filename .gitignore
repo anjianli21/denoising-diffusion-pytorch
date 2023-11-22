@@ -1,8 +1,10 @@
 # Generation results
 results/
+from_della/
 
 # wandb
 wandb/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
