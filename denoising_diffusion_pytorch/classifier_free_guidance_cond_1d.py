@@ -1079,7 +1079,7 @@ class Trainer1D(object):
 
         # Keeping only top 2 checkpoints
         if len(self.best_checkpoints) > 2:
-            _, checkpoint_to_remove = self.best_checkpoints.pop(3)  # Remove the 4th checkpoint
+            _, checkpoint_to_remove = self.best_checkpoints.pop(2)  # Remove the 4th checkpoint
             if os.path.exists(checkpoint_to_remove):
                 os.remove(checkpoint_to_remove)  # Delete the checkpoint file
 
