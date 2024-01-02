@@ -864,6 +864,7 @@ class Trainer1D(object):
             split_batches=True,
             max_grad_norm=1.,
             num_workers=1,
+            wandb_project_name="diffusion_for_cr3bp_test"
     ):
         super().__init__()
 
@@ -881,16 +882,18 @@ class Trainer1D(object):
             'embed_class_layers_dims': diffusion_model.model.embed_class_layers_dims,
             'timesteps': diffusion_model.timesteps,
             'objective': diffusion_model.objective,
-            'batch_size': train_batch_size
+            'batch_size': train_batch_size,
+            'cond_drop_prob': diffusion_model.model.cond_drop_prob
         }
 
         # Generate a unique name for the run
         run_name = f"unet_dim: {hyperparameters['unet_dim']}, unet_mults: ({','.join(map(str, hyperparameters['unet_dim_mults']))}), " \
                    f"embed_class_layer: ({','.join(map(str, hyperparameters['embed_class_layers_dims']))}), " \
                    f"steps: {hyperparameters['timesteps']}, obj: {hyperparameters['objective']}, " \
+                   f"cond_drop_prob: {hyperparameters['cond_drop_prob']}, " \
                    f"batch_size: {hyperparameters['batch_size']}"
 
-        wandb.init(project='diffusion_for_cr3bp', name=run_name, config=hyperparameters)
+        wandb.init(project=wandb_project_name, name=run_name, config=hyperparameters)
 
         ############################################################################################
         # Configure the trainer
@@ -994,13 +997,28 @@ class Trainer1D(object):
 
         data = torch.load(str(self.results_folder / f'model-{milestone}.pt'), map_location=device)
 
+        #TODO #############################################################################################
+        # Modify state dict if necessary
+        ema_state_dict = data['ema']
+        if 'initted' in data['ema'] and ema_state_dict['initted'].shape == torch.Size([]):
+            ema_state_dict['initted'] = ema_state_dict['initted'].unsqueeze(0)
+        if 'step' in ema_state_dict and ema_state_dict['step'].shape == torch.Size([]):
+            ema_state_dict['step'] = ema_state_dict['step'].unsqueeze(0)
+
+        # Print the shapes of initted and step
+        print("Shape of initted in EMA state dict:", ema_state_dict.get('initted', 'Not found').shape)
+        print("Shape of step in EMA state dict:", ema_state_dict.get('step', 'Not found').shape)
+        #############################################################################################
+
         model = self.accelerator.unwrap_model(self.model)
         model.load_state_dict(data['model'])
 
         self.step = data['step']
         self.opt.load_state_dict(data['opt'])
         if self.accelerator.is_main_process:
-            self.ema.load_state_dict(data["ema"])
+            # self.ema.load_state_dict(data["ema"])
+            # TODO: use modified ema_state_dict
+            self.ema.load_state_dict(ema_state_dict)
 
         if 'version' in data:
             print(f"loading from version {data['version']}")
