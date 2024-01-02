@@ -15,7 +15,7 @@ for unet_dim_mult in "${unet_dim_mults[@]}"; do
     for cond_drop_prob in "${cond_drop_prob_list[@]}"; do
 
       # Create a job file for each combination
-      job_file="cond_alpha_data_time_mass_control_slurm/cond_alpha_data_time_mass_control_slurm_job_${job_counter}.slurm"
+      job_file="cond_alpha_data_time_mass_control_slurm/slurm_job_${job_counter}.slurm"
       cat > "$job_file" <<EOF
 #!/bin/bash
 #SBATCH --job-name=diffusion1d
@@ -26,7 +26,7 @@ for unet_dim_mult in "${unet_dim_mults[@]}"; do
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
 #SBATCH --gres=gpu:1
-#SBATCH --time=05:59:59
+#SBATCH --time=09:59:59
 #SBATCH --mail-type=all
 #SBATCH --mail-user=anjianl@princeton.edu
 #SBATCH --array=$job_counter
