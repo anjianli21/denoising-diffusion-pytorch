@@ -5,10 +5,10 @@ unet_dim=128
 unet_dim_mults=("4,4,8" "4,8,8")
 embed_class_layers_dims=("64,128" "256,512")
 cond_drop_prob_list=(0.1 0.2 0.3)
-training_data_type="cond_alpha_data_time_mass_control"
-wandb_project_name="diffusion_for_cr3bp_cond_alpha_data_time_mass_control"
-data_path="/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_alpha_time_mass_control.pkl"
-seq_length=64
+training_data_type="cond_alpha_data_time_mass"
+wandb_project_name="diffusion_for_cr3bp_cond_alpha_data_time_mass"
+data_path="/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_alpha_time_mass.pkl"
+seq_length=4
 
 # Counter for job files
 job_counter=1
