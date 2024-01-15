@@ -441,7 +441,7 @@ class Unet1D(nn.Module):
         # TODO: unconditional output
         null_logits = self.forward(*args, cond_drop_prob=1., **kwargs)
 
-        # weighted sum = unconditional + scale * (conditional - conditional) = scale * conditional + (1 - scale) * unconditional
+        # weighted sum = unconditional + scale * (conditional - unconditional) = scale * conditional + (1 - scale) * unconditional
         scaled_logits = null_logits + (logits - null_logits) * cond_scale
 
         if rescaled_phi == 0.:
