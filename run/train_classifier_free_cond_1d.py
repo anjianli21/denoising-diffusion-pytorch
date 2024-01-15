@@ -36,7 +36,6 @@ def main():
     wandb_project_name = str(args.wandb_project_name)
     wandb_project_name = f"{wandb_project_name}_range_{training_data_range}"
 
-
     ####################################################################################################################
     # Build the model
     model = Unet1D(
