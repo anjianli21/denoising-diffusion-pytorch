@@ -304,6 +304,7 @@ class Unet1D(nn.Module):
             dim,
             class_dim,
             cond_drop_prob=0.5,
+            mask_val=0.0,
             init_dim=None,
             out_dim=None,
             dim_mults=(1, 2, 4, 8),
@@ -323,6 +324,7 @@ class Unet1D(nn.Module):
 
         # classifier free guidance stuff
         self.cond_drop_prob = cond_drop_prob
+        self.mask_val = mask_val
 
         # determine dimensions
         self.dim = dim
@@ -472,7 +474,7 @@ class Unet1D(nn.Module):
             classes_emb = torch.where(
                 rearrange(keep_mask, 'b -> b 1'),
                 classes,
-                torch.tensor(0.0).cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
+                torch.tensor(self.mask_val).cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
             )
             # TODO: embed the class to the conditional variable c
             c = self.classes_mlp(classes_emb)
@@ -864,7 +866,9 @@ class Trainer1D(object):
             split_batches=True,
             max_grad_norm=1.,
             num_workers=1,
-            wandb_project_name="diffusion_for_cr3bp_test"
+            wandb_project_name="diffusion_for_cr3bp_test",
+            training_data_range="0_1",
+            training_data_num=300000,
     ):
         super().__init__()
 
@@ -883,7 +887,10 @@ class Trainer1D(object):
             'timesteps': diffusion_model.timesteps,
             'objective': diffusion_model.objective,
             'batch_size': train_batch_size,
-            'cond_drop_prob': diffusion_model.model.cond_drop_prob
+            'cond_drop_prob': diffusion_model.model.cond_drop_prob,
+            'mask_val': diffusion_model.model.mask_val,
+            'training_data_range': training_data_range,
+            'training_data_num': training_data_num
         }
 
         # Generate a unique name for the run
@@ -891,7 +898,9 @@ class Trainer1D(object):
                    f"embed_class_layer: ({','.join(map(str, hyperparameters['embed_class_layers_dims']))}), " \
                    f"steps: {hyperparameters['timesteps']}, obj: {hyperparameters['objective']}, " \
                    f"cond_drop_prob: {hyperparameters['cond_drop_prob']}, " \
-                   f"batch_size: {hyperparameters['batch_size']}"
+                   f"batch_size: {hyperparameters['batch_size']}, mask_val: {hyperparameters['mask_val']}, " \
+                   f"data_range: {hyperparameters['training_data_range']}, " \
+                   f"data_num: {hyperparameters['training_data_num']}"
 
         wandb.init(project=wandb_project_name, name=run_name, config=hyperparameters)
 
