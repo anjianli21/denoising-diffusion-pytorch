@@ -19,6 +19,6 @@ echo "SLURM_ARRAY_JOB_ID: $SLURM_ARRAY_JOB_ID"
 module purge
 module load anaconda3/2021.11
 conda activate pydylan
-export WANDB_DIR='/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/cond_alpha_data_time_mass_control_range_0_1'
+export WANDB_DIR='/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/cond_alpha_data_time_mass_control_data_range_0_1'
 export WANDB_MODE=offline
-python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d.py --unet_dim 128 --unet_dim_mults "4,4,8" --embed_class_layers_dims "256,512" --timesteps 500 --objective pred_noise --batch_size 512 --machine della --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_alpha_time_mass_control.pkl --class_dim 1 --channel_num 1 --seq_length 64 --wandb_project_name diffusion_for_cr3bp_cond_alpha_data_time_mass_control --training_data_type cond_alpha_data_time_mass_control --cond_drop_prob 0.1 --training_data_range "0_1" --mask_val 0.0 --training_data_num 300000
+python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d.py --unet_dim 128 --unet_dim_mults "4,4,8" --embed_class_layers_dims "256,512" --timesteps 500 --objective pred_noise --batch_size 512 --machine della --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/cr3bp_alpha_time_mass_control.pkl --class_dim 1 --channel_num 1 --seq_length 64 --wandb_project_name diffusion_for_cr3bp_cond_alpha_data_time_mass_control --training_data_type cond_alpha_data_time_mass_control --cond_drop_prob 0.1 --training_data_range='0_1' --mask_val 0.0 --training_data_num 300000
