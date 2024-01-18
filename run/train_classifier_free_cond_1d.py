@@ -104,7 +104,7 @@ def main():
         results_folder = f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/{training_data_type}_range_{training_data_range}_num_{training_data_num}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
         num_workers = 1
 
-    step_per_epoch = int(data.shape[0] / batch_size)
+    step_per_epoch = int(training_data_num / batch_size)
     max_epoch = 150
 
     trainer = Trainer1D(
