@@ -101,7 +101,7 @@ def main():
         results_folder = f"results/{training_data_type}_range_{training_data_range}_num_{training_data_num}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
         num_workers = 1
     elif machine == "della":
-        results_folder = f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/{training_data_type}_range_{training_data_range}_num_{training_data_num}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+        results_folder = f"/scratch/gpfs/al5844/project/diffusion/fixed_car_vary_obs/results/{training_data_type}_range_{training_data_range}_num_{training_data_num}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
         num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
@@ -145,15 +145,15 @@ def parse_args():
     # Unet 1D parameters
     parser.add_argument('--unet_dim',
                         type=int,
-                        default=64,
+                        default=128,
                         help='Dimension of the first layer of Unet')
     parser.add_argument('--unet_dim_mults',
                         type=str,
-                        default="1,1,1",
+                        default="4,4,8",
                         help='List of dimension multipliers for Unet, currently at most 4 layers since we can only downsample 20 dim 4 times.')
     parser.add_argument('--embed_class_layers_dims',
                         type=str,
-                        default="16,16",
+                        default="256,512",
                         help='List of dimension for embedding class layers')
     parser.add_argument('--cond_drop_prob',
                         type=float,
