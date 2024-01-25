@@ -106,7 +106,7 @@ def main():
         num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
-    max_epoch = 150
+    max_epoch = 200
 
     trainer = Trainer1D(
         diffusion_model=diffusion,
