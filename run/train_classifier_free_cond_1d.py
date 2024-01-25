@@ -124,14 +124,14 @@ def main():
     )
     trainer.train()
 
-    # # do above for many steps
-    # sampled_seq = diffusion.sample(
-    #     classes=training_seq_classes[:10, :].cuda(),
-    #     cond_scale=6.,
-    #     # condition scaling, anything greater than 1 strengthens the classifier free guidance. reportedly 3-8 is good empirically
-    # )
-    #
-    # print(sampled_seq.shape)  # (64, 3, 20)
+    # do above for many steps
+    sampled_seq = diffusion.sample(
+        classes=training_seq_classes[:10, :].cuda(),
+        cond_scale=6.,
+        # condition scaling, anything greater than 1 strengthens the classifier free guidance. reportedly 3-8 is good empirically
+    )
+
+    print(sampled_seq.shape)  # (64, 3, 20)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for diffusion models")

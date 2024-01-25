@@ -724,6 +724,7 @@ class GaussianDiffusion1D(nn.Module):
     def p_sample_loop(self, classes, shape, cond_scale=6., rescaled_phi=0.7):
         batch, device = shape[0], self.betas.device
 
+        # TODO: default image to be randomly sampled from [0, 1]?
         img = torch.randn(shape, device=device)
 
         x_start = None
