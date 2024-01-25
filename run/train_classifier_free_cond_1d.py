@@ -45,7 +45,8 @@ def main():
         embed_class_layers_dims=embed_class_layers_dims,
         class_dim=class_dim,
         cond_drop_prob=cond_drop_prob,
-        mask_val=mask_val
+        mask_val=mask_val,
+        seq_length=seq_length,
     )
 
     diffusion = GaussianDiffusion1D(
@@ -70,13 +71,13 @@ def main():
     x = data[:, class_dim:].astype(np.float32).reshape(data.shape[0], channel_num, seq_length)
     c = data[:, :class_dim].astype(np.float32).reshape(data.shape[0], class_dim)
     # Downsample if we use fewer data
-    step_size = len(x) // training_data_num
-    x_downsampled = x[::step_size, :]
-    c_downsampled = c[::step_size, :]
+    # step_size = len(x) // training_data_num
+    # x_downsampled = x[::step_size, :]
+    # c_downsampled = c[::step_size, :]
 
     # Convert to tensor
-    training_seq = torch.tensor(x_downsampled)
-    training_seq_classes = torch.tensor(c_downsampled)
+    training_seq = torch.tensor(x)
+    training_seq_classes = torch.tensor(c)
     if training_data_range == "0_1":
         pass
     elif training_data_range == "-1_1":
@@ -98,10 +99,10 @@ def main():
     unet_dim_mults_in_str = "_".join(map(str, unet_dim_mults))
     embed_class_layers_dims_in_str = "_".join(map(str, embed_class_layers_dims))
     if machine == "ubuntu":
-        results_folder = f"results/{training_data_type}_range_{training_data_range}_num_{training_data_num}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+        results_folder = f"results/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
         num_workers = 1
     elif machine == "della":
-        results_folder = f"/scratch/gpfs/al5844/project/diffusion/fixed_car_vary_obs/results/{training_data_type}_range_{training_data_range}_num_{training_data_num}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+        results_folder = f"/scratch/gpfs/al5844/project/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
         num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)

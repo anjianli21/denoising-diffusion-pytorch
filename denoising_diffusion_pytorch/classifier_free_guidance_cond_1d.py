@@ -127,10 +127,16 @@ def Upsample(dim, dim_out=None):  # TODO: upsample and downsample using conv1d
         nn.Conv1d(dim, default(dim_out, dim), 3, padding=1)
     )
 
+def Final_upsample_to_target_length(dim_out, dim_in, target_length):
+    return nn.Sequential(
+        nn.Upsample(size=target_length, mode='nearest'),
+        nn.Conv1d(dim_out, dim_in, 3, padding=1)
+    )
+
+
 
 def Downsample(dim, dim_out=None):
     return nn.Conv1d(dim, default(dim_out, dim), 4, 2, 1)
-
 
 class RMSNorm(nn.Module):
     def __init__(self, dim):
@@ -303,6 +309,7 @@ class Unet1D(nn.Module):
             self,
             dim,
             class_dim,
+            seq_length,
             cond_drop_prob=0.5,
             mask_val=0.0,
             init_dim=None,
@@ -318,7 +325,7 @@ class Unet1D(nn.Module):
             learned_sinusoidal_dim=16,
             sinusoidal_pos_emb_theta=10000,
             attn_dim_head=32,
-            attn_heads=4
+            attn_heads=4,
     ):
         super().__init__()
 
@@ -330,6 +337,8 @@ class Unet1D(nn.Module):
         self.dim = dim
         self.dim_mults = dim_mults
         self.embed_class_layers_dims = embed_class_layers_dims
+
+        self.seq_length = seq_length
 
         self.channels = channels
         self.self_condition = self_condition
@@ -385,12 +394,22 @@ class Unet1D(nn.Module):
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
 
-            self.downs.append(nn.ModuleList([
-                block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
-                block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
-                Residual(PreNorm(dim_in, LinearAttention(dim_in))),
-                Downsample(dim_in, dim_out) if not is_last else nn.Conv1d(dim_in, dim_out, 3, padding=1)
-            ]))
+            # TODO: Handle the case where seq_length = 1, no upsampling and downsampling, only conv1d
+            if self.seq_length > 1:
+                self.downs.append(nn.ModuleList([
+                    block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    Residual(PreNorm(dim_in, LinearAttention(dim_in))),
+                    Downsample(dim_in, dim_out) if not is_last else nn.Conv1d(dim_in, dim_out, 3, padding=1)
+                ]))
+            else:
+                # If sequence length is already 1, avoid downsampling and just use convolutional layers
+                self.downs.append(nn.ModuleList([
+                    block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    Residual(PreNorm(dim_in, LinearAttention(dim_in))),
+                    nn.Conv1d(dim_in, dim_out, 3, padding=1)
+                ]))
 
         mid_dim = dims[-1]
         self.mid_block1 = block_klass(mid_dim, mid_dim, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim)
@@ -399,13 +418,27 @@ class Unet1D(nn.Module):
 
         for ind, (dim_in, dim_out) in enumerate(reversed(in_out)):
             is_last = ind == (len(in_out) - 1)
+            is_second_last = ind == (len(in_out) - 2)
 
-            self.ups.append(nn.ModuleList([
-                block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
-                block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
-                Residual(PreNorm(dim_out, LinearAttention(dim_out))),
-                Upsample(dim_out, dim_in) if not is_last else nn.Conv1d(dim_out, dim_in, 3, padding=1)
-            ]))
+            if self.seq_length > 1:
+                self.ups.append(nn.ModuleList([
+                    block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    Residual(PreNorm(dim_out, LinearAttention(dim_out))),
+                    # TODO: since the original data size not necessarily can be divided by two,
+                    #  so if is the second last year of upsample, we need make sure it upsamples to the original size
+                    # Upsample(dim_out, dim_in) if not is_last else nn.Conv1d(dim_out, dim_in, 3, padding=1),
+                    Final_upsample_to_target_length(dim_out, dim_in, target_length=self.seq_length) if is_second_last else
+                    (nn.Conv1d(dim_out, dim_in, 3, padding=1) if is_last else
+                     Upsample(dim_out, dim_in))
+                ]))
+            else:
+                self.ups.append(nn.ModuleList([
+                    block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
+                    Residual(PreNorm(dim_out, LinearAttention(dim_out))),
+                    nn.Conv1d(dim_out, dim_in, 3, padding=1),
+                ]))
 
         default_out_dim = channels * (1 if not learned_variance else 2)
         self.out_dim = default(out_dim, default_out_dim)
@@ -505,15 +538,15 @@ class Unet1D(nn.Module):
         x = self.mid_block2(x, t, c)
 
         for block1, block2, attn, upsample in self.ups:
-
+            # print(f"x size is {x.size()}, h pop size is {h[-1].size()}")
             x = torch.cat((x, h.pop()), dim=1)
             x = block1(x, t, c)
 
             x = torch.cat((x, h.pop()), dim=1)
             x = block2(x, t, c)
             x = attn(x)
-
             x = upsample(x)
+            # print(f"x size is {x.size()}")
 
         x = torch.cat((x, r), dim=1)
 
