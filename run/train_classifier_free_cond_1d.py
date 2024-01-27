@@ -104,6 +104,9 @@ def main():
     elif machine == "della":
         results_folder = f"/scratch/gpfs/al5844/project/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
         num_workers = 1
+    elif machine == "autodl-cr3bp":
+        results_folder = f"/root/autodl-tmp/project/diffusion/cr3bp/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+        num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
     max_epoch = 200
