@@ -121,9 +121,9 @@ class Residual(nn.Module):  # TODO: input a function f, return f(x) + x
         return self.fn(x, *args, **kwargs) + x
 
 
-def Upsample(dim, dim_out=None):  # TODO: upsample and downsample using conv1d
+def Upsample(dim, dim_out=None, scale_factor=2):  # TODO: upsample and downsample using conv1d
     return nn.Sequential(
-        nn.Upsample(scale_factor=2, mode='nearest'),
+        nn.Upsample(scale_factor=scale_factor, mode='nearest'),
         nn.Conv1d(dim, default(dim_out, dim), 3, padding=1)
     )
 
@@ -133,10 +133,9 @@ def Final_upsample_to_target_length(dim_out, dim_in, target_length):
         nn.Conv1d(dim_out, dim_in, 3, padding=1)
     )
 
+def Downsample(dim, dim_out=None, kernel=4):
+    return nn.Conv1d(dim, default(dim_out, dim), kernel, 2, 1)
 
-
-def Downsample(dim, dim_out=None):
-    return nn.Conv1d(dim, default(dim_out, dim), 4, 2, 1)
 
 class RMSNorm(nn.Module):
     def __init__(self, dim):
@@ -408,7 +407,8 @@ class Unet1D(nn.Module):
                     block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
                     block_klass(dim_in, dim_in, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
                     Residual(PreNorm(dim_in, LinearAttention(dim_in))),
-                    nn.Conv1d(dim_in, dim_out, 3, padding=1)
+                    # nn.Conv1d(dim_in, dim_out, 3, padding=1)
+                    Downsample(dim_in, dim_out, 2) if not is_last else nn.Conv1d(dim_in, dim_out, 3, padding=1)
                 ]))
 
         mid_dim = dims[-1]
@@ -431,13 +431,16 @@ class Unet1D(nn.Module):
                     Final_upsample_to_target_length(dim_out, dim_in, target_length=self.seq_length) if is_second_last else
                     (nn.Conv1d(dim_out, dim_in, 3, padding=1) if is_last else
                      Upsample(dim_out, dim_in))
+
                 ]))
             else:
                 self.ups.append(nn.ModuleList([
                     block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
                     block_klass(dim_out + dim_in, dim_out, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim),
                     Residual(PreNorm(dim_out, LinearAttention(dim_out))),
-                    nn.Conv1d(dim_out, dim_in, 3, padding=1),
+                    # nn.Conv1d(dim_out, dim_in, 3, padding=1),
+                    (nn.Conv1d(dim_out, dim_in, 3, padding=1) if is_last else
+                     Upsample(dim_out, dim_in, 1))
                 ]))
 
         default_out_dim = channels * (1 if not learned_variance else 2)
