@@ -37,6 +37,7 @@ def main():
     wandb_project_name = str(args.wandb_project_name)
     wandb_project_name = f"{wandb_project_name}_range_{training_data_range}"
     result_folder = str(args.result_folder)
+    max_epoch = args.max_epoch
 
     ####################################################################################################################
     # Build the model
@@ -115,7 +116,7 @@ def main():
     #     num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
-    max_epoch = 200  # 200
+    # max_epoch = 200  # 200
 
     trainer = Trainer1D(
         diffusion_model=diffusion,
@@ -224,7 +225,10 @@ def parse_args():
                         type=int,
                         default=300000,
                         help="number of training data")
-
+    parser.add_argument('--max_epoch',
+                        type=int,
+                        default=200,
+                        help="number of epochs to train")
     parser.add_argument('--result_folder',
                         type=str,
                         default="checkpoint_result/",
