@@ -485,7 +485,9 @@ class Unet1D(nn.Module):
         # Rescale the cost with std
         # TODO: after rescale, the value of logit become nan
         std_fn = partial(torch.std, dim=tuple(range(1, scaled_logits.ndim)), keepdim=True)
-        rescaled_logits = scaled_logits * (std_fn(logits) / std_fn(scaled_logits))
+        rescaled_logits = scaled_logits * (std_fn(logits) / (std_fn(scaled_logits) + 1e-6))
+        if torch.isnan(rescaled_logits).any():
+            return scaled_logits
 
         # weighted sum of rescaled and original sum. if rescaled_phi = 1.0, then fully use rescaled loss
         return rescaled_logits * rescaled_phi + scaled_logits * (1. - rescaled_phi)
