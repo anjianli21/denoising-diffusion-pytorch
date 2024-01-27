@@ -1,6 +1,7 @@
 # Generation results
 results/
 from_della/
+from_autodl/
 
 # wandb
 wandb/

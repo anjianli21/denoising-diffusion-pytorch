@@ -483,6 +483,7 @@ class Unet1D(nn.Module):
             return scaled_logits
 
         # Rescale the cost with std
+        # TODO: after rescale, the value of logit become nan
         std_fn = partial(torch.std, dim=tuple(range(1, scaled_logits.ndim)), keepdim=True)
         rescaled_logits = scaled_logits * (std_fn(logits) / std_fn(scaled_logits))
 

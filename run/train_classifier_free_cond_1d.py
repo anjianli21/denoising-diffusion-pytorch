@@ -71,13 +71,13 @@ def main():
     x = data[:, class_dim:].astype(np.float32).reshape(data.shape[0], channel_num, seq_length)
     c = data[:, :class_dim].astype(np.float32).reshape(data.shape[0], class_dim)
     # Downsample if we use fewer data
-    # step_size = len(x) // training_data_num
-    # x_downsampled = x[::step_size, :]
-    # c_downsampled = c[::step_size, :]
+    step_size = len(x) // training_data_num
+    x_downsampled = x[::step_size, :]
+    c_downsampled = c[::step_size, :]
 
     # Convert to tensor
-    training_seq = torch.tensor(x)
-    training_seq_classes = torch.tensor(c)
+    training_seq = torch.tensor(x_downsampled)
+    training_seq_classes = torch.tensor(c_downsampled)
     if training_data_range == "0_1":
         pass
     elif training_data_range == "-1_1":
