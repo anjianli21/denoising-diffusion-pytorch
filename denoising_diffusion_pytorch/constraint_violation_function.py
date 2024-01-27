@@ -2,7 +2,6 @@ import torch
 
 def get_constraint_violation_car(x, c, device):
 
-
     # Scale back to original x (t_final, control)
     TIME_MIN = 7.81728
     TIME_MAX = 12.0

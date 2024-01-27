@@ -1,3 +1,4 @@
+import os.path
 import sys
 
 sys.path.append('../')
@@ -35,6 +36,7 @@ def main():
     training_data_num = args.training_data_num
     wandb_project_name = str(args.wandb_project_name)
     wandb_project_name = f"{wandb_project_name}_range_{training_data_range}"
+    result_folder = str(args.result_folder)
 
     ####################################################################################################################
     # Build the model
@@ -98,15 +100,19 @@ def main():
     # Reconfigure the tuple variables to string
     unet_dim_mults_in_str = "_".join(map(str, unet_dim_mults))
     embed_class_layers_dims_in_str = "_".join(map(str, embed_class_layers_dims))
-    if machine == "ubuntu":
-        results_folder = f"results/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-        num_workers = 1
-    elif machine == "autodl-car":
-        results_folder = f"/root/autodl-tmp/project/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-        num_workers = 1
-    elif machine == "autodl-cr3bp":
-        results_folder = f"/root/autodl-tmp/project/diffusion/cr3bp/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-        num_workers = 1
+
+    num_workers = 1
+    checkpoint_folder = f"{result_folder}/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+
+    # if machine == "ubuntu":
+    #     results_folder = f"results/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+    #     num_workers = 1
+    # elif machine == "autodl-car":
+    #     results_folder = f"/root/autodl-tmp/project/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+    #     num_workers = 1
+    # elif machine == "autodl-cr3bp":
+    #     results_folder = f"/root/autodl-tmp/project/diffusion/cr3bp/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
+    #     num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
     max_epoch = 200
@@ -120,7 +126,7 @@ def main():
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
         amp=True,  # turn on mixed precision
-        results_folder=results_folder,
+        results_folder=checkpoint_folder,
         num_workers=num_workers,
         wandb_project_name=wandb_project_name,
         training_data_range=training_data_range,
@@ -218,6 +224,11 @@ def parse_args():
                         type=int,
                         default=300000,
                         help="number of training data")
+
+    parser.add_argument('--result_folder',
+                        type=int,
+                        default="checkpoint_result/",
+                        help="result_folder")
 
     return parser.parse_args()
 
