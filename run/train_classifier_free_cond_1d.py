@@ -226,7 +226,7 @@ def parse_args():
                         help="number of training data")
 
     parser.add_argument('--result_folder',
-                        type=int,
+                        type=str,
                         default="checkpoint_result/",
                         help="result_folder")
 
