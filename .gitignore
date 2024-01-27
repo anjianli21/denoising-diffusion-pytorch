@@ -2,7 +2,7 @@
 results/
 from_della/
 from_autodl/
-
+data/
 # wandb
 wandb/
 
