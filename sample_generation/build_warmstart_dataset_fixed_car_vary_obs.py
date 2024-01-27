@@ -24,8 +24,8 @@ def main():
     CONTROL_MAX = 1.0005
 
     # sample_type_list = ["full_sample", "conditional_sample"]
-    # sample_type_list = ["conditional_sample"]
-    sample_type_list = ["full_sample"]
+    sample_type_list = ["conditional_sample"]
+    # sample_type_list = ["full_sample"]
 
     diffusion_w_list = [5.0]
 
