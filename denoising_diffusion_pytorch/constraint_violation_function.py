@@ -157,10 +157,12 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     device = "cuda:0"
     # Random x
-    x = torch.ones((512, 81)).to(device)
+    x = torch.rand((512, 81)).to(device)
     x.requires_grad_(True)
-    c = torch.ones((512, 6)).to(device)
-    scale = torch.rand(512).to(device)
+    c = torch.rand((512, 6)).to(device)
+    scale = torch.ones(512).to(device)
     violation = get_constraint_violation_car(x, c, scale, device)
     print(f"total violation is {violation}")
     print(torch.autograd.grad(violation, x, create_graph=True))
+    print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
+    print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))
