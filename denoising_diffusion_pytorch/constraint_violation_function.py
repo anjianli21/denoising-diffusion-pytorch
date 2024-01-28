@@ -30,7 +30,7 @@ def get_constraint_violation_car(x, c, device):
                                                                 car_num=2, u_num_per_car=2,
                                                                 car_start_pos=car_start_pos, car_start_v=car_start_v,
                                                                 car_start_theta=car_start_theta, timestep=timestep,
-                                                                batch_size=batch_size)
+                                                                batch_size=batch_size, device=device)
 
     # print(f"state x is {state_x[0, :]}")
 
@@ -91,7 +91,7 @@ def get_constraint_violation_car(x, c, device):
 
     return violation
 
-def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, car_start_v, car_start_theta, timestep, batch_size):
+def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, car_start_v, car_start_theta, timestep, batch_size, device):
     t_final = x_sol["t_final"]
     car_control = torch.zeros((batch_size, car_num, timestep, u_num_per_car)).to(device)
     for i in range(car_num):

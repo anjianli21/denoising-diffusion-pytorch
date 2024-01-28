@@ -26,6 +26,7 @@ import copy
 from tqdm.auto import tqdm
 
 from denoising_diffusion_pytorch.version import __version__
+from denoising_diffusion_pytorch.constraint_violation_function import get_constraint_violation_car
 
 # constants
 
@@ -746,16 +747,19 @@ class GaussianDiffusion1D(nn.Module):
         model_mean, posterior_variance, posterior_log_variance = self.q_posterior(x_start=x_start, x_t=x, t=t)
         return model_mean, posterior_variance, posterior_log_variance, x_start
 
-    @torch.no_grad()
+    # @torch.no_grad()
     def p_sample(self, x, t: int, classes, cond_scale=6., rescaled_phi=0.7,
                  clip_denoised=True):  # TODO: sample function for diffusion
         b, *_, device = *x.shape, x.device
-        batched_times = torch.full((x.shape[0],), t, device=x.device, dtype=torch.long)
+        if len(t.shape) >= 1: # multiple different t
+            batched_times = t.clone().to(device=x.device, dtype=torch.long)
+        else:  # single t
+            batched_times = torch.full((x.shape[0],), t, device=x.device, dtype=torch.long)
         model_mean, _, model_log_variance, x_start = self.p_mean_variance(x=x, t=batched_times, classes=classes,
                                                                           cond_scale=cond_scale,
                                                                           rescaled_phi=rescaled_phi,
                                                                           clip_denoised=clip_denoised)
-        noise = torch.randn_like(x) if t > 0 else 0.  # no noise if t == 0
+        noise = torch.randn_like(x) if (len(t.shape) >= 1 or t > 0) else 0.  # no noise if t == 0
         pred_img = model_mean + (0.5 * model_log_variance).exp() * noise
         return pred_img, x_start
 
@@ -868,11 +872,35 @@ class GaussianDiffusion1D(nn.Module):
         else:
             raise ValueError(f'unknown objective {self.objective}')
 
-        loss = F.mse_loss(model_out, target, reduction='none')
-        loss = reduce(loss, 'b ... -> b (...)', 'mean')
+        if self.is_ddim_sampling:
+            t_next = t-1
+            alpha = self.alphas_cumprod[t]
+            alpha_next = self.alphas_cumprod[t_next]
+
+            eta = 1. # TODO
+            sigma = eta * ((1 - alpha / alpha_next) * (1 - alpha_next) / (1 - alpha)).sqrt()
+            c = (1 - alpha_next - sigma ** 2).sqrt()
+
+            noise = torch.randn_like(x_start)
+
+            # x(t-1) = x(t) + epsilon
+            x_t_1 = x_start * alpha_next.sqrt() + \
+                    c * model_out + \
+                    sigma * noise
+
+        else:
+            cond_scale=6.
+            rescaled_phi=0.7
+            x_t_1, _ = self.p_sample(x, t, classes, cond_scale, rescaled_phi)
+
+        violation_loss = get_constraint_violation_car(x_t_1.view(x_start.shape[0], -1), classes, x_start.device)
+
+        coef = torch.tensor(0.001)
+        loss = F.mse_loss(model_out, target, reduction='none') 
+        loss = reduce(loss, 'b ... -> b (...)', 'mean') 
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
-        return loss.mean()
+        return loss.mean() + coef * violation_loss
 
     def forward(self, img, *args, **kwargs):
         b, c, n, device, seq_length, = *img.shape, img.device, self.seq_length
