@@ -1,6 +1,6 @@
 import torch
 
-def get_constraint_violation_car(x, c, device):
+def get_constraint_violation_car(x, c, scale, device):
 
     # Scale back to original x (t_final, control)
     TIME_MIN = 7.81728
@@ -11,6 +11,8 @@ def get_constraint_violation_car(x, c, device):
     batch_size = x.size()[0]
 
     # Unpack x
+
+    # Scale and unpack x
     original_x = torch.zeros_like(x).to(device)
     original_x[:, 0] = x[:, 0] * (TIME_MAX - TIME_MIN) + TIME_MIN
     original_x[:, 1:] = x[:, 1:] * (CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
@@ -87,6 +89,7 @@ def get_constraint_violation_car(x, c, device):
 
     violation = v_min_violation + v_max_violation + goal_reaching_violation + obstacle_avoidance_violation + car_avoidance_violation
 
+    violation = violation * scale
     violation = torch.mean(violation)
 
     return violation
@@ -113,10 +116,10 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, car_start_v
     state_theta[:, :, 0] = car_start_theta.unsqueeze(0).expand(batch_size, -1)
 
     # Configure dynamics
-    dx = lambda v, theta: v * torch.cos(theta)
-    dy = lambda v, theta: v * torch.sin(theta)
-    dv = lambda a: a
-    dtheta = lambda omega: omega
+    dx = lambda v, theta: v.clone() * torch.cos(theta.clone())
+    dy = lambda v, theta: v.clone() * torch.sin(theta.clone())
+    dv = lambda a: a.clone()
+    dtheta = lambda omega: omega.clone()
 
     # RK4 integration without explicit batch loop
     for t in range(timestep):
@@ -151,9 +154,13 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, car_start_v
     return state_x, state_y, state_v, state_theta
 
 if __name__ == "__main__":
+    torch.autograd.set_detect_anomaly(True)
     device = "cuda:0"
     # Random x
     x = torch.ones((512, 81)).to(device)
+    x.requires_grad_(True)
     c = torch.ones((512, 6)).to(device)
-    violation = get_constraint_violation_car(x, c, device)
+    scale = torch.rand(512).to(device)
+    violation = get_constraint_violation_car(x, c, scale, device)
     print(f"total violation is {violation}")
+    print(torch.autograd.grad(violation, x, create_graph=True))

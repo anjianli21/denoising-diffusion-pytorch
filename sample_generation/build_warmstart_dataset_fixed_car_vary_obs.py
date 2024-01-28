@@ -19,17 +19,17 @@ import importlib.util
 def main():
 
     TIME_MIN = 7.81728
-    TIME_MAX_list = [12.0, 14.0]
+    TIME_MAX_list = [12.0]
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
 
     # sample_type_list = ["full_sample", "conditional_sample"]
-    sample_type_list = ["conditional_sample"]
-    # sample_type_list = ["full_sample"]
+    # sample_type_list = ["conditional_sample"]
+    sample_type_list = ["full_sample"]
 
-    diffusion_w_list = [5.0]
+    diffusion_w_list = [10.0, 5.0]
 
-    sample_num = 10
+    sample_num = 200
 
     condition_seed_list = [5000 + i for i in range(1)]
 
@@ -38,16 +38,16 @@ def main():
 
         for j in range(len(sample_type_list)):
             sample_type = sample_type_list[j]
-            data_type = f"diffusion_{sample_type}_obj_{int(TIME_MAX)}"
 
             for k in range(len(diffusion_w_list)):
-
+                diffusion_w = diffusion_w_list[k]
                 for l in range(len(condition_seed_list)):
                     condition_seed = condition_seed_list[l]
-                    diffusion_w = diffusion_w_list[k]
+
+                    data_type = f"diffusion_{sample_type}_obj_{int(TIME_MAX)}_w_{int(diffusion_w)}"
 
                     # Configure path
-                    input_obs_output_time_parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results/input_obs_output_time_obj_{int(TIME_MAX)}"
+                    input_obs_output_time_parent_path = f"results/from_della/diffusion/fixed_car_vary_obs/results/input_obs_output_time_obj_{int(TIME_MAX)}"
                     input_obs_time_output_control_parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results/input_obs_time_output_control_obj_{int(TIME_MAX)}"
                     input_obs_output_time_control_parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results/input_obs_output_time_control_obj_{int(TIME_MAX)}"
 
