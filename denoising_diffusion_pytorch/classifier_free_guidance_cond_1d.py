@@ -760,7 +760,10 @@ class GaussianDiffusion1D(nn.Module):
                                                                           cond_scale=cond_scale,
                                                                           rescaled_phi=rescaled_phi,
                                                                           clip_denoised=clip_denoised)
-        noise = torch.randn_like(x) if (len(t.shape) >= 1 or t > 0) else 0.  # no noise if t == 0
+        if isinstance(t, int):
+            noise = torch.randn_like(x) if (t > 0) else 0.
+        else:
+            noise = torch.randn_like(x) if (len(t.shape) >= 1 or t > 0) else 0.  # no noise if t == 0
         pred_img = model_mean + (0.5 * model_log_variance).exp() * noise
         return pred_img, x_start
 
