@@ -1,4 +1,5 @@
 import torch
+import pickle
 
 def get_constraint_violation_tabletop(x, c, scale, device):
 
@@ -126,13 +127,30 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, b
     return state_x, state_y
 
 if __name__ == "__main__":
-    torch.autograd.set_detect_anomaly(True)
+    use_local_optimal_data = True
+    # use_local_optimal_data = False
     device = "cuda:0"
-    # Random x
-    x = torch.rand((512, 81)).to(device)
-    x.requires_grad_(True)
-    c = torch.rand((512, 14)).to(device)
-    scale = torch.ones(512).to(device)
+    torch.autograd.set_detect_anomaly(True)
+    data_num = 10
+
+    if use_local_optimal_data:
+        data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/tabletop/obstacle_goal_time_control_data_obj_6_num_202654.pkl"
+        with open(data_path, 'rb') as f:
+            local_optimal_data = pickle.load(f)
+
+        local_optimal_data_to_use = local_optimal_data[:data_num, :]
+        c = local_optimal_data_to_use[:, :14]
+        x = local_optimal_data_to_use[:, 14:]
+
+        # Random x
+        x = torch.tensor(x).to(device)
+        x.requires_grad_(True)
+        c = torch.tensor(c).to(device)
+    else:
+        x = torch.rand(data_num, 81).to(device)
+        x.requires_grad_(True)
+        c = torch.rand(data_num, 14).to(device)
+    scale = torch.ones(data_num).to(device)
     violation = get_constraint_violation_tabletop(x, c, scale, device)
     print(f"total violation is {violation}")
     print(torch.autograd.grad(violation, x, create_graph=True))
