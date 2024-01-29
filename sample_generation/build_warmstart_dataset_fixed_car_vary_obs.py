@@ -23,15 +23,19 @@ def main():
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
 
-    # sample_type_list = ["full_sample", "conditional_sample"]
+    sample_type_list = ["full_sample", "conditional_sample"]
     # sample_type_list = ["conditional_sample"]
-    sample_type_list = ["full_sample"]
+    # sample_type_list = ["full_sample"]
 
-    diffusion_w_list = [10.0, 5.0]
+    # diffusion_w_list = [10.0, 5.0]
+    diffusion_w_list = [5.0]
 
-    sample_num = 200
+    constraint_violation_weight_list = [0.01, 0.001]
 
-    condition_seed_list = [5000 + i for i in range(1)]
+    sample_num = 10
+    condition_seed_num = 20
+
+    condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
     for i in range(len(TIME_MAX_list)):
         TIME_MAX = TIME_MAX_list[i]
@@ -54,8 +58,20 @@ def main():
                     # Sample obs
                     rng_condition = np.random.RandomState(seed=condition_seed)
                     # obs sample
-                    obs_radius = rng_condition.rand(2).reshape(1, 2)
-                    obs_pos = rng_condition.rand(2, 2).reshape(1, 4)
+                    is_condition_reasonable = False
+                    while not is_condition_reasonable:
+                        print("sample obs again")
+                        obs_radius = rng_condition.rand(2)
+                        obs_pos = rng_condition.rand(2, 2)
+
+                        parameters = {}
+                        parameters["obs_radius"] = obs_radius + 0.5
+                        parameters["obs_pos"] = obs_pos * 6.0 + 2.0
+                        is_condition_reasonable = check_condition(parameters=parameters)
+
+                    obs_radius = obs_radius.reshape(1, 2)
+                    obs_pos = obs_pos.reshape(1, 4)
+
                     obs_condition_input = np.hstack((obs_pos, obs_radius))
 
                     # Repeat the same obs input as the sample num
@@ -197,7 +213,50 @@ def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path,
 
     return sample_results
 
+def check_condition(parameters, to_print=False):
+    car_num = 2
+    car_radius = 0.2
+    obs_num = 2
+    obs_radius = parameters["obs_radius"]
+    obs_pos = parameters["obs_pos"]
 
+    car_start_pos = np.array([[0.0, 10.0], [10.0, 10.0], [5.0, 0.0]])
+    car_goal_pos = np.array([[10.0, 0.0], [0.0, 0.0], [5.0, 10.0]])
+
+    # Check if car start and goal positions are far enough from each other
+    for i in range(car_num):
+        for j in range(car_num):
+            if i != j:
+                if np.linalg.norm(car_start_pos[i, :] - car_start_pos[j, :]) < 4 * car_radius:
+                    if to_print:
+                        print(f"car {i} and car {j} start pos is too close")
+                    return False
+                if np.linalg.norm(car_goal_pos[i, :] - car_goal_pos[j, :]) < 4 * car_radius:
+                    if to_print:
+                        print(f"car {i} and car {j} goal pos is too close")
+                    return False
+
+    # Check if car start and goal positions are far enough from obstacles
+    for i in range(car_num):
+        for j in range(obs_num):
+            if np.linalg.norm(car_start_pos[i, :] - obs_pos[j, :]) < 4 * car_radius + obs_radius[j]:
+                if to_print:
+                    print(f"car {i} start pos and obs {j} pos is too close")
+                return False
+            if np.linalg.norm(car_goal_pos[i, :] - obs_pos[j, :]) < 4 * car_radius + obs_radius[j]:
+                if to_print:
+                    print(f"car {i} goal pos and obs {j} pos is too close")
+                return False
+
+    for i in range(obs_num):
+        for j in range(obs_num):
+            if i != j:
+                if np.linalg.norm(obs_pos[i, :] - obs_pos[j, :]) < obs_radius[i] + obs_radius[j]:
+                    if to_print:
+                        print(f"obs {i} and obs {j} start pos is too close")
+                    return False
+
+    return True
 
 if __name__ == "__main__":
     main()

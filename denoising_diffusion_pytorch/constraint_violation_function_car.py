@@ -1,4 +1,5 @@
 import torch
+import pickle
 
 def get_constraint_violation_car(x, c, scale, device):
 
@@ -7,6 +8,11 @@ def get_constraint_violation_car(x, c, scale, device):
     TIME_MAX = 12.0
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
+    OBS_POS_MIN = 2.0
+    OBS_POS_MAX = 8.0
+    OBS_RADIUS_MIN = 0.5
+    OBS_RADIUS_MAX = 1.5
+
     timestep = 20
     batch_size = x.size()[0]
 
@@ -26,7 +32,7 @@ def get_constraint_violation_car(x, c, scale, device):
 
     car_start_pos = torch.tensor([[0.0, 10.0], [10.0, 10.0]]).to(device)
     car_start_v = torch.tensor([0.0] * 2).to(device)
-    car_start_theta = torch.tensor([7 * torch.pi / 4, 5 * torch.pi / 4]).to(device)
+    car_start_theta = torch.tensor([0.0, 0.0]).to(device)
 
     state_x, state_y, state_v, state_theta = integrate_dynamics(x_sol=x_sol,
                                                                 car_num=2, u_num_per_car=2,
@@ -38,8 +44,8 @@ def get_constraint_violation_car(x, c, scale, device):
 
     # Unpack c (obs_pos, obs_radius)
     original_c = torch.zeros_like(c).to(device)
-    original_c[:, :4] = c[:, :4] * 6.0 + 2.0
-    original_c[:, 4:] = c[:, 4:6] + 0.5
+    original_c[:, :4] = c[:, :4] * (OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
+    original_c[:, 4:] = c[:, 4:6] * (OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
 
     obs_pos = original_c[:, :4].reshape(-1, 2, 2)
     obs_radius = original_c[:, 4:6]
@@ -154,13 +160,32 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, car_start_v
     return state_x, state_y, state_v, state_theta
 
 if __name__ == "__main__":
-    torch.autograd.set_detect_anomaly(True)
+    use_local_optimal_data = True
+    # use_local_optimal_data = False
     device = "cuda:0"
-    # Random x
-    x = torch.ones((512, 81)).to(device)
-    x.requires_grad_(True)
-    c = torch.ones((512, 6)).to(device)
-    scale = torch.rand(512).to(device)
+    torch.autograd.set_detect_anomaly(True)
+    data_num = 10
+
+    if use_local_optimal_data:
+        data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/car/obstacle_time_control_data_obj_12_num_114570.pkl"
+        with open(data_path, 'rb') as f:
+            local_optimal_data = pickle.load(f)
+
+        local_optimal_data_to_use = local_optimal_data[:data_num, :]
+        c = local_optimal_data_to_use[:, :6]
+        x = local_optimal_data_to_use[:, 6:]
+
+        # Random x
+        x = torch.tensor(x).to(device)
+        x.requires_grad_(True)
+        c = torch.tensor(c).to(device)
+    else:
+        x = torch.rand(data_num, 81).to(device)
+        x.requires_grad_(True)
+        c = torch.rand(data_num, 6).to(device)
+    scale = torch.ones(data_num).to(device)
     violation = get_constraint_violation_car(x, c, scale, device)
     print(f"total violation is {violation}")
     print(torch.autograd.grad(violation, x, create_graph=True))
+    print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
+    print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))
