@@ -751,10 +751,11 @@ class GaussianDiffusion1D(nn.Module):
     def p_sample(self, x, t: int, classes, cond_scale=6., rescaled_phi=0.7,
                  clip_denoised=True):  # TODO: sample function for diffusion
         b, *_, device = *x.shape, x.device
-        if len(t.shape) >= 1: # multiple different t
-            batched_times = t.clone().to(device=x.device, dtype=torch.long)
-        else:  # single t
+        if isinstance(t, int):
             batched_times = torch.full((x.shape[0],), t, device=x.device, dtype=torch.long)
+        else:  # multiple different t
+            batched_times = t.clone().to(device=x.device, dtype=torch.long)
+
         model_mean, _, model_log_variance, x_start = self.p_mean_variance(x=x, t=batched_times, classes=classes,
                                                                           cond_scale=cond_scale,
                                                                           rescaled_phi=rescaled_phi,
@@ -893,7 +894,7 @@ class GaussianDiffusion1D(nn.Module):
             rescaled_phi=0.7
             x_t_1, _ = self.p_sample(x, t, classes, cond_scale, rescaled_phi)
         violation_loss = get_constraint_violation_car(x_t_1.view(x_start.shape[0], -1), classes, 1./(t+1), x_start.device)
-        coef = torch.tensor(0.001)
+        coef = torch.tensor(0.01)
         loss = F.mse_loss(model_out, target, reduction='none') 
         loss = reduce(loss, 'b ... -> b (...)', 'mean') 
 
