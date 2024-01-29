@@ -27,7 +27,10 @@ def main():
     # sample_type_list = ["conditional_sample"]
     # sample_type_list = ["full_sample"]
 
-    diffusion_w_list = [10.0, 5.0]
+    # diffusion_w_list = [10.0, 5.0]
+    diffusion_w_list = [5.0]
+
+    constraint_violation_weight_list = [0.01, 0.001]
 
     sample_num = 10
     condition_seed_num = 20
