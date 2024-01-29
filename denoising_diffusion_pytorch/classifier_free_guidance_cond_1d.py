@@ -897,7 +897,7 @@ class GaussianDiffusion1D(nn.Module):
             rescaled_phi=0.7
             x_t_1, _ = self.p_sample(x, t, classes, cond_scale, rescaled_phi)
         violation_loss = get_constraint_violation_car(x_t_1.view(x_start.shape[0], -1), classes, 1./(t+1), x_start.device)
-        coef = torch.tensor(0.01)
+        coef = torch.tensor(0.001)
         loss = F.mse_loss(model_out, target, reduction='none') 
         loss = reduce(loss, 'b ... -> b (...)', 'mean') 
 
