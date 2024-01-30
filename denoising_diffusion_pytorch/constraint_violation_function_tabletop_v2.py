@@ -73,7 +73,7 @@ def get_constraint_violation_tabletop(x, c, scale, device):
             obstacle_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_obstacle_square)
     obstacle_avoidance_violation = torch.sum(obstacle_avoidance_violation, dim=[1, 2, 3])
 
-
+    goal_reaching_violation = goal_reaching_violation / 10
     # print(f"goal_reaching_violation max {torch.max(goal_reaching_violation)}")
     # print(f"goal_reaching_violation min {torch.min(goal_reaching_violation)}")
     # print(f"obstacle_avoidance_violation max {torch.max(obstacle_avoidance_violation)}")
