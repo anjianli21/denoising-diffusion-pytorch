@@ -19,120 +19,101 @@ import importlib.util
 def main():
 
     TIME_MIN = 7.81728
-    TIME_MAX_list = [12.0]
+    TIME_MAX = 12.0
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
 
     # sample_type_list = ["full_sample", "conditional_sample"]
     # sample_type_list = ["conditional_sample"]
-    sample_type_list = ["full_sample"]
+    # sample_type_list = ["full_sample"]
+    sample_type = "full_sample"
 
     # diffusion_w_list = [10.0, 5.0]
-    diffusion_w_list = [5.0]
+    # diffusion_w_list = [5.0]
 
-    constraint_violation_weight_list = [0.001]
+    diffusion_w = 5.0
 
     sample_num = 10
     condition_seed_num = 20
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
-    for i in range(len(TIME_MAX_list)):
-        TIME_MAX = TIME_MAX_list[i]
+    data_type_list = [
+        f"diffusion_full_sample_data_114k_constraint_0.01",
+        f"diffusion_full_sample_data_114k_constraint_0.001",
+        f"diffusion_full_sample_data_114k_constraint_0.1_v2",
+        f"diffusion_full_sample_data_114k_constraint_0.01_v2",
+                      ]
 
-        for j in range(len(sample_type_list)):
-            sample_type = sample_type_list[j]
+    # Configure path
+    parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
+    input_obs_output_time_control_parent_path_list = [
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_constraint_0.01",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_constraint_0.001",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_constraint_0.1_v2",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_constraint_0.01_v2",
+    ]
+    for i in range(len(data_type_list)):
+        data_type = data_type_list[i]
+        input_obs_output_time_control_parent_path = input_obs_output_time_control_parent_path_list[i]
 
-            for k in range(len(diffusion_w_list)):
-                diffusion_w = diffusion_w_list[k]
-                for l in range(len(condition_seed_list)):
-                    condition_seed = condition_seed_list[l]
+        for j in range(len(condition_seed_list)):
+            condition_seed = condition_seed_list[j]
 
-                    for m in range(len(constraint_violation_weight_list)):
-                        constraint_violation_weight = constraint_violation_weight_list[m]
+            # Sample obs
+            rng_condition = np.random.RandomState(seed=condition_seed)
+            # obs sample
+            is_condition_reasonable = False
+            while not is_condition_reasonable:
+                print("sample obs again")
+                obs_radius = rng_condition.rand(2)
+                obs_pos = rng_condition.rand(2, 2)
 
-                        data_type = f"diffusion_{sample_type}_obj_{int(TIME_MAX)}_w_{int(diffusion_w)}_constraint_violation_{constraint_violation_weight}"
+                parameters = {}
+                parameters["obs_radius"] = obs_radius + 0.5
+                parameters["obs_pos"] = obs_pos * 6.0 + 2.0
+                is_condition_reasonable = check_condition(parameters=parameters)
 
-                        # Configure path
-                        input_obs_output_time_parent_path = f"results/from_della/diffusion/fixed_car_vary_obs/results/input_obs_output_time_obj_{int(TIME_MAX)}"
-                        input_obs_time_output_control_parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results/input_obs_time_output_control_obj_{int(TIME_MAX)}"
-                        input_obs_output_time_control_parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results/input_obs_output_time_control_obj_{int(TIME_MAX)}_constraint_violation_{constraint_violation_weight}"
+            obs_radius = obs_radius.reshape(1, 2)
+            obs_pos = obs_pos.reshape(1, 4)
 
-                        # Sample obs
-                        rng_condition = np.random.RandomState(seed=condition_seed)
-                        # obs sample
-                        is_condition_reasonable = False
-                        while not is_condition_reasonable:
-                            print("sample obs again")
-                            obs_radius = rng_condition.rand(2)
-                            obs_pos = rng_condition.rand(2, 2)
+            obs_condition_input = np.hstack((obs_pos, obs_radius))
 
-                            parameters = {}
-                            parameters["obs_radius"] = obs_radius + 0.5
-                            parameters["obs_pos"] = obs_pos * 6.0 + 2.0
-                            is_condition_reasonable = check_condition(parameters=parameters)
+            # Repeat the same obs input as the sample num
+            obs_condition_input = np.tile(obs_condition_input, (sample_num, 1))
+            obs_condition_input = torch.tensor(obs_condition_input).float().cuda()
 
-                        obs_radius = obs_radius.reshape(1, 2)
-                        obs_pos = obs_pos.reshape(1, 4)
+            if sample_type == "full_sample":
+                t_final_control_samples = sample_diffusion(condition_input=obs_condition_input,
+                                                           input_output_type="input_obs_output_t_control",
+                                                           checkpoint_parent_path=input_obs_output_time_control_parent_path,
+                                                           sample_num=sample_num,
+                                                           diffusion_w=diffusion_w)
+                obs_condition_input = obs_condition_input.detach().cpu().numpy()
+                t_final_control_samples = t_final_control_samples.detach().cpu().numpy()
 
-                        obs_condition_input = np.hstack((obs_pos, obs_radius))
-
-                        # Repeat the same obs input as the sample num
-                        obs_condition_input = np.tile(obs_condition_input, (sample_num, 1))
-                        obs_condition_input = torch.tensor(obs_condition_input).float().cuda()
-
-                        # Conditional sampling
-                        if sample_type == "conditional_sample":
-                            t_final_samples = sample_diffusion(condition_input=obs_condition_input,
-                                                               input_output_type="input_obs_output_t",
-                                                               checkpoint_parent_path=input_obs_output_time_parent_path,
-                                                               sample_num=sample_num,
-                                                               diffusion_w=diffusion_w)
-
-                            obs_t_final_condition_input = torch.hstack((obs_condition_input, t_final_samples))
-                            control_samples = sample_diffusion(condition_input=obs_t_final_condition_input,
-                                                               input_output_type="input_obs_t_output_control",
-                                                               checkpoint_parent_path=input_obs_time_output_control_parent_path,
-                                                               sample_num=sample_num,
-                                                               diffusion_w=diffusion_w)
-                            obs_condition_input = obs_condition_input.detach().cpu().numpy()
-                            t_final_samples = t_final_samples.detach().cpu().numpy().reshape(-1, 1)
-                            control_samples = control_samples.detach().cpu().numpy()
-
-                            obs_t_final_samples = np.hstack((obs_condition_input, t_final_samples))
-                            obs_t_final_control_samples = np.hstack((obs_t_final_samples, control_samples))
-
-                        elif sample_type == "full_sample":
-                            t_final_control_samples = sample_diffusion(condition_input=obs_condition_input,
-                                                                       input_output_type="input_obs_output_t_control",
-                                                                       checkpoint_parent_path=input_obs_output_time_control_parent_path,
-                                                                       sample_num=sample_num,
-                                                                       diffusion_w=diffusion_w)
-                            obs_condition_input = obs_condition_input.detach().cpu().numpy()
-                            t_final_control_samples = t_final_control_samples.detach().cpu().numpy()
-
-                            obs_t_final_control_samples = np.hstack((obs_condition_input, t_final_control_samples))
+                obs_t_final_control_samples = np.hstack((obs_condition_input, t_final_control_samples))
 
 
-                        # Data preparation #######################################################################################################
-                        # obs_pos, original range [2, 8]
-                        obs_t_final_control_samples[:, :4] = obs_t_final_control_samples[:, :4] * 6.0 + 2.0
-                        # obs_radius, original range [0.5, 1.5]
-                        obs_t_final_control_samples[:, 4:6] = obs_t_final_control_samples[:, 4:6] + 0.5
-                        # t_final, original range [TIME_MIN, TIME_MAX]
-                        obs_t_final_control_samples[:, 6] = obs_t_final_control_samples[:, 6] * (TIME_MAX - TIME_MIN) + TIME_MIN
-                        # Control, original range [CONTROL_MIN, CONTROL_MAX]
-                        obs_t_final_control_samples[:, 7:] = obs_t_final_control_samples[:, 7:] * (CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
-                        print("data normalization is done")
+            # Data preparation #######################################################################################################
+            # obs_pos, original range [2, 8]
+            obs_t_final_control_samples[:, :4] = obs_t_final_control_samples[:, :4] * 6.0 + 2.0
+            # obs_radius, original range [0.5, 1.5]
+            obs_t_final_control_samples[:, 4:6] = obs_t_final_control_samples[:, 4:6] + 0.5
+            # t_final, original range [TIME_MIN, TIME_MAX]
+            obs_t_final_control_samples[:, 6] = obs_t_final_control_samples[:, 6] * (TIME_MAX - TIME_MIN) + TIME_MIN
+            # Control, original range [CONTROL_MIN, CONTROL_MAX]
+            obs_t_final_control_samples[:, 7:] = obs_t_final_control_samples[:, 7:] * (CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
+            print("data normalization is done")
 
-                        for num in range(sample_num):
-                            warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/{data_type}"
-                            if not os.path.exists(warmstart_data_parent_path):
-                                os.makedirs(warmstart_data_parent_path, exist_ok=True)
-                            warmstart_data_path = f"{warmstart_data_parent_path }/{data_type}_condition_seed_{condition_seed}_initial_guess_seed_{num}.pkl"
-                            with open(warmstart_data_path, 'wb') as f:
-                                pickle.dump(obs_t_final_control_samples[num, :], f)
-                            print(f"{warmstart_data_path} is saved")
+            for num in range(sample_num):
+                warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/car/{data_type}"
+                if not os.path.exists(warmstart_data_parent_path):
+                    os.makedirs(warmstart_data_parent_path, exist_ok=True)
+                warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{condition_seed}_initial_guess_seed_{num}.pkl"
+                with open(warmstart_data_path, 'wb') as f:
+                    pickle.dump(obs_t_final_control_samples[num, :], f)
+                print(f"{warmstart_data_path} is saved")
 
 def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path, sample_num, diffusion_w):
 

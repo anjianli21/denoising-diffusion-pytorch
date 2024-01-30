@@ -601,7 +601,7 @@ class GaussianDiffusion1D(nn.Module):
             beta_schedule='cosine',
             ddim_sampling_eta=0.,
             auto_normalize=True,
-            constraint_violation_weight=0.001
+            constraint_violation_weight=0.001,
     ):
         super().__init__()
         self.model = model
@@ -898,7 +898,7 @@ class GaussianDiffusion1D(nn.Module):
             cond_scale=6.
             rescaled_phi=0.7
             x_t_1, _ = self.p_sample(x, t, classes, cond_scale, rescaled_phi)
-        violation_loss = get_constraint_violation_car(x_t_1.view(x_start.shape[0], -1), classes, 1./(t+1), x_start.device)
+        violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1./(t+1), x_start.device)
         coef = torch.tensor(self.constraint_violation_weight)
         loss = F.mse_loss(model_out, target, reduction='none')
         loss = reduce(loss, 'b ... -> b (...)', 'mean')

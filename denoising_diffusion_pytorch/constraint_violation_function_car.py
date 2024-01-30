@@ -61,9 +61,10 @@ def get_constraint_violation_car(x, c, scale, device):
 
     # V constraints
     # TODO: max v over trajectory violation? or each step v violation
-    v_min_violation = torch.max(torch.tensor(0.0).to(device), car_v_bound[0] - state_v)
+    tolerance = torch.tensor(1e-3).to(device)
+    v_min_violation = torch.max(torch.tensor(0.0).to(device), car_v_bound[0] - state_v - tolerance)
     v_min_violation = torch.sum(v_min_violation, dim=[1, 2])
-    v_max_violation = torch.max(torch.tensor(0.0).to(device), state_v - car_v_bound[1])
+    v_max_violation = torch.max(torch.tensor(0.0).to(device), state_v - car_v_bound[1] - tolerance)
     v_max_violation = torch.sum(v_max_violation, dim=[1, 2])
 
     # goal reaching constraints
@@ -71,7 +72,7 @@ def get_constraint_violation_car(x, c, scale, device):
     for i in range(car_num):
         dist_to_goal_square = (state_x[:, i, -1] - car_goal_pos[i][0]) ** 2 + (state_y[:, i, -1] - car_goal_pos[i][1]) ** 2
         threshold = car_goal_radius ** 2
-        goal_reaching_violation[:, i] = torch.max(torch.tensor(0.0).to(device), dist_to_goal_square - threshold)
+        goal_reaching_violation[:, i] = torch.max(torch.tensor(0.0).to(device), dist_to_goal_square - threshold - tolerance)
     goal_reaching_violation = torch.sum(goal_reaching_violation, dim=1)
 
     # Obstacle avoidance constraints
@@ -80,7 +81,7 @@ def get_constraint_violation_car(x, c, scale, device):
         for j in range(obs_num):
             dist_to_obstacle_square = (state_x[:, i, :] - obs_pos[:, j, 0].reshape(-1, 1)) ** 2 + (state_y[:, i, :] - obs_pos[:, j, 1].reshape(-1, 1)) ** 2
             threshold = (car_radius + obs_radius[:, j]).reshape(-1, 1) ** 2
-            obstacle_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_obstacle_square)
+            obstacle_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_obstacle_square - tolerance)
     obstacle_avoidance_violation = torch.sum(obstacle_avoidance_violation, dim=[1, 2, 3])
 
     # Car avoidance constraints
@@ -91,15 +92,15 @@ def get_constraint_violation_car(x, c, scale, device):
                 dist_to_car_square = (state_x[:, i, :] - state_x[:, j, 0].reshape(-1, 1)) ** 2 + (
                             state_y[:, i, :] - state_y[:, j, 1].reshape(-1, 1)) ** 2
                 threshold = (car_radius + car_radius).reshape(-1, 1) ** 2
-                car_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_car_square)
+                car_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_car_square - tolerance)
     car_avoidance_violation = torch.sum(car_avoidance_violation, dim=[1, 2, 3])
 
-    print(f"v min violation max {torch.max(v_min_violation)}")
-    print(f"v max violation max {torch.max(v_max_violation)}")
-    print(f"goal_reaching_violation max {torch.max(goal_reaching_violation)}")
-    print(f"goal_reaching_violation min {torch.min(goal_reaching_violation)}")
-    print(f"obstacle_avoidance_violation max {torch.max(obstacle_avoidance_violation)}")
-    print(f"car_avoidance_violation max {torch.max(car_avoidance_violation)}")
+    # print(f"v min violation max {torch.max(v_min_violation)}")
+    # print(f"v max violation max {torch.max(v_max_violation)}")
+    # print(f"goal_reaching_violation max {torch.max(goal_reaching_violation)}")
+    # print(f"goal_reaching_violation min {torch.min(goal_reaching_violation)}")
+    # print(f"obstacle_avoidance_violation max {torch.max(obstacle_avoidance_violation)}")
+    # print(f"car_avoidance_violation max {torch.max(car_avoidance_violation)}")
 
     violation = v_min_violation + v_max_violation + goal_reaching_violation + obstacle_avoidance_violation + car_avoidance_violation
 
@@ -168,11 +169,11 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, car_start_v
     return state_x, state_y, state_v, state_theta
 
 if __name__ == "__main__":
-    # use_local_optimal_data = True
-    use_local_optimal_data = False
+    use_local_optimal_data = True
+    # use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 100
+    data_num = 10000
 
     if use_local_optimal_data:
         data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/car/obstacle_time_control_data_obj_12_num_114570.pkl"

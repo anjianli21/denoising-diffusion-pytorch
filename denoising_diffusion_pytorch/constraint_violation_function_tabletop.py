@@ -36,7 +36,8 @@ def get_constraint_violation_tabletop(x, c, scale, device):
                                           car_num=1, u_num_per_car=2,
                                           car_start_pos=car_start_pos,
                                           timestep=timestep,
-                                          batch_size=batch_size)
+                                          batch_size=batch_size,
+                                          device=device)
 
     # print(f"state x is {state_x[0, :]}")
 
@@ -57,11 +58,13 @@ def get_constraint_violation_tabletop(x, c, scale, device):
     car_radius = torch.tensor(0.2).to(device)
 
     # goal reaching constraints
+    tolerance = torch.tensor(1e-3).to(device)
+
     goal_reaching_violation = torch.zeros((batch_size, car_num)).to(device)
     for i in range(car_num):
         dist_to_goal_square = (state_x[:, i, -1] - car_goal_pos[:, 0]) ** 2 + (state_y[:, i, -1] - car_goal_pos[:, 1]) ** 2
         threshold = car_goal_radius ** 2
-        goal_reaching_violation[:, i] = torch.max(torch.tensor(0.0).to(device), dist_to_goal_square - threshold)
+        goal_reaching_violation[:, i] = torch.max(torch.tensor(0.0).to(device), dist_to_goal_square - threshold - tolerance)
     goal_reaching_violation = torch.sum(goal_reaching_violation, dim=1)
 
     # Obstacle avoidance constraints
@@ -70,7 +73,7 @@ def get_constraint_violation_tabletop(x, c, scale, device):
         for j in range(obs_num):
             dist_to_obstacle_square = (state_x[:, i, :] - obs_pos[:, j, 0].reshape(-1, 1)) ** 2 + (state_y[:, i, :] - obs_pos[:, j, 1].reshape(-1, 1)) ** 2
             threshold = (car_radius + obs_radius[:, j]).reshape(-1, 1) ** 2
-            obstacle_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_obstacle_square)
+            obstacle_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_obstacle_square - tolerance)
     obstacle_avoidance_violation = torch.sum(obstacle_avoidance_violation, dim=[1, 2, 3])
 
 
@@ -85,7 +88,7 @@ def get_constraint_violation_tabletop(x, c, scale, device):
 
     return violation
 
-def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, batch_size):
+def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, batch_size, device):
     t_final = x_sol["t_final"]
     car_control = torch.zeros((batch_size, car_num, timestep, u_num_per_car)).to(device)
     for i in range(car_num):
@@ -134,7 +137,7 @@ if __name__ == "__main__":
     # use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 10
+    data_num = 1000
 
     if use_local_optimal_data:
         data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/tabletop/obstacle_goal_time_control_data_obj_6_num_202654.pkl"

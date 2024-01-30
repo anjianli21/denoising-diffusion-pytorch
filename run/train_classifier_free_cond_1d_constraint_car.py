@@ -5,7 +5,7 @@ sys.path.append('../')
 sys.path.append('./')
 
 import torch
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_v2 import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
 from torch.utils.data import TensorDataset
 import pickle
 import numpy as np
