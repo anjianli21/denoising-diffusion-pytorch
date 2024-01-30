@@ -53,7 +53,6 @@ def get_constraint_violation_tabletop(x, c, scale, device):
     # Other parameters
     obs_num = 4
     car_num = 1
-    car_v_bound = torch.tensor([-2.0, 2.0]).to(device)
     car_goal_radius = torch.tensor(0.2).to(device)
     car_radius = torch.tensor(0.2).to(device)
 
