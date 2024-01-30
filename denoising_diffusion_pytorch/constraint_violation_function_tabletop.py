@@ -57,9 +57,9 @@ def get_constraint_violation_tabletop(x, c, scale, device):
     car_radius = torch.tensor(0.2).to(device)
 
     # goal reaching constraints
-    goal_reaching_violation = torch.zeros((batch_size, 2)).to(device)
+    goal_reaching_violation = torch.zeros((batch_size, car_num)).to(device)
     for i in range(car_num):
-        dist_to_goal_square = (state_x[:, i, -1] - car_goal_pos[i][0]) ** 2 + (state_y[:, i, -1] - car_goal_pos[i][1]) ** 2
+        dist_to_goal_square = (state_x[:, i, -1] - car_goal_pos[:, 0]) ** 2 + (state_y[:, i, -1] - car_goal_pos[:, 1]) ** 2
         threshold = car_goal_radius ** 2
         goal_reaching_violation[:, i] = torch.max(torch.tensor(0.0).to(device), dist_to_goal_square - threshold)
     goal_reaching_violation = torch.sum(goal_reaching_violation, dim=1)
@@ -152,6 +152,6 @@ if __name__ == "__main__":
     scale = torch.ones(data_num).to(device)
     violation = get_constraint_violation_tabletop(x, c, scale, device)
     print(f"total violation is {violation}")
-    print(torch.autograd.grad(violation, x, create_graph=True))
+    # print(torch.autograd.grad(violation, x, create_graph=True))
     print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
     print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))

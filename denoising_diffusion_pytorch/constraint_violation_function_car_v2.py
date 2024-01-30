@@ -94,12 +94,13 @@ def get_constraint_violation_car(x, c, scale, device):
                 car_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_car_square)
     car_avoidance_violation = torch.sum(car_avoidance_violation, dim=[1, 2, 3])
 
-    print(f"v min violation max {torch.max(v_min_violation)}")
-    print(f"v max violation max {torch.max(v_max_violation)}")
-    print(f"goal_reaching_violation max {torch.max(goal_reaching_violation)}")
-    print(f"goal_reaching_violation min {torch.min(goal_reaching_violation)}")
-    print(f"obstacle_avoidance_violation max {torch.max(obstacle_avoidance_violation)}")
-    print(f"car_avoidance_violation max {torch.max(car_avoidance_violation)}")
+    goal_reaching_violation = goal_reaching_violation / 50
+    # print(f"v min violation max {torch.max(v_min_violation)}")
+    # print(f"v max violation max {torch.max(v_max_violation)}")
+    # print(f"goal_reaching_violation max {torch.max(goal_reaching_violation)}")
+    # print(f"goal_reaching_violation min {torch.min(goal_reaching_violation)}")
+    # print(f"obstacle_avoidance_violation max {torch.max(obstacle_avoidance_violation)}")
+    # print(f"car_avoidance_violation max {torch.max(car_avoidance_violation)}")
 
     violation = v_min_violation + v_max_violation + goal_reaching_violation + obstacle_avoidance_violation + car_avoidance_violation
 
@@ -172,7 +173,7 @@ if __name__ == "__main__":
     use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 100
+    data_num = 500
 
     if use_local_optimal_data:
         data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/car/obstacle_time_control_data_obj_12_num_114570.pkl"
