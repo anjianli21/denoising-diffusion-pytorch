@@ -602,6 +602,7 @@ class GaussianDiffusion1D(nn.Module):
             ddim_sampling_eta=0.,
             auto_normalize=True,
             constraint_violation_weight=0.001,
+            constraint_condscale=6.,
     ):
         super().__init__()
         self.model = model
@@ -610,6 +611,7 @@ class GaussianDiffusion1D(nn.Module):
         self.timesteps = timesteps
         self.objective = objective
         self.constraint_violation_weight = constraint_violation_weight
+        self.constraint_condscale = constraint_condscale
 
         assert objective in {'pred_noise', 'pred_x0',
                              'pred_v'}, 'objective must be either pred_noise (predict noise) or pred_x0 (predict image start) or pred_v (predict v [v-parameterization as defined in appendix D of progressive distillation paper, used in imagen-video successfully])'
@@ -895,7 +897,7 @@ class GaussianDiffusion1D(nn.Module):
                     sigma * noise
 
         else:
-            cond_scale=6.
+            cond_scale=self.constraint_condscale
             rescaled_phi=0.7
             x_t_1, _ = self.p_sample(x, t, classes, cond_scale, rescaled_phi)
         violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1./(t+1), x_start.device)

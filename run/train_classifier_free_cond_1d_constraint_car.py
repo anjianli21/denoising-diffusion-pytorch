@@ -39,6 +39,10 @@ def main():
     result_folder = str(args.result_folder)
     max_epoch = args.max_epoch
     constraint_violation_weight = args.constraint_violation_weight
+    constraint_condscale = args.constraint_condscale
+
+    print(f"constraint_violation_weight {constraint_violation_weight}")
+    print(f"constraint_condscale {constraint_condscale}")
 
     ####################################################################################################################
     # Build the model
@@ -60,6 +64,7 @@ def main():
         objective=objective,
         # objective='pred_noise',
         constraint_violation_weight=constraint_violation_weight,
+        constraint_condscale=constraint_condscale,
     ).cuda()
 
     # # Random dataset
@@ -239,6 +244,10 @@ def parse_args():
                         type=float,
                         default=0.001,
                         help="weight of the constraint violation term")
+    parser.add_argument('--constraint_condscale',
+                        type=float,
+                        default=6.,
+                        help="weight of the cond scale in constraint violation sampling")
 
     return parser.parse_args()
 
