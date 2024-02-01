@@ -84,7 +84,7 @@ def get_constraint_violation_tabletop(x, c, scale, device):
     violation = goal_reaching_violation + obstacle_avoidance_violation
 
     violation = violation * scale
-    violation = torch.mean(violation)
+    # violation = torch.mean(violation)
 
     return violation
 
@@ -133,11 +133,11 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, b
     return state_x, state_y
 
 if __name__ == "__main__":
-    # use_local_optimal_data = True
-    use_local_optimal_data = False
+    use_local_optimal_data = True
+    # use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 200
+    data_num = 1000
 
     if use_local_optimal_data:
         data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/tabletop/obstacle_goal_time_control_data_obj_6_num_202654.pkl"
@@ -160,5 +160,5 @@ if __name__ == "__main__":
     violation = get_constraint_violation_tabletop(x, c, scale, device)
     print(f"total violation is {violation}")
     # print(torch.autograd.grad(violation, x, create_graph=True))
-    print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
-    print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))
+    # print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
+    # print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))

@@ -4,9 +4,18 @@ import sys
 import re
 import time
 
+import sys
+import os
+
+sys.path.append('/home/anjian/Desktop/project/generative_trajectory_optimization')
+
+from models import *
+
+
 from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, \
     Dataset1D
 from denoising_diffusion_pytorch.constraint_violation_function_car import get_constraint_violation_car
+
 
 import copy
 import numpy as np
@@ -24,48 +33,19 @@ def main():
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
 
-    # sample_type_list = ["full_sample", "conditional_sample"]
-    # sample_type_list = ["conditional_sample"]
-    # sample_type_list = ["full_sample"]
-    sample_type = "full_sample"
-
-    # diffusion_w_list = [10.0, 5.0]
-    # diffusion_w_list = [5.0]
-
     diffusion_w = 5.0
+    device = "cuda:0"
 
-    sample_num = 10
-    condition_seed_num = 20
+    sample_num = 20
+    condition_seed_num = 10
+
+    data_type_list = ["cvae_lstm"]
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
-
-    data_type_list = [
-        # f"full_data_114k_constraint_weight_0.0001_condscale_1",
-        # f"full_data_114k_constraint_weight_0.0001_condscale_6",
-        # f"full_data_114k_constraint_weight_0.001_condscale_1",
-        # f"full_data_114k_constraint_weight_0.001_condscale_6",
-        # f"full_data_114k_constraint_weight_0.01_condscale_1",
-        f"full_data_114k_constraint_weight_0.01_condscale_6",
-        # f"input_obs_output_time_control_obj_12_data_114k"
-                      ]
-
-    # Configure path
-    parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
-    input_obs_output_time_control_parent_path_list = [
-        # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_1",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_6",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.001_condscale_1",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.001_condscale_6",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_1",
-        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6",
-        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k"
-    ]
 
     constraint_violation_list = []
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
-        input_obs_output_time_control_parent_path = input_obs_output_time_control_parent_path_list[i]
-
         current_prediction_data_list = []
 
         obs_condition_input_list = []
@@ -93,21 +73,23 @@ def main():
 
             # Repeat the same obs input as the sample num
             obs_condition_input = np.tile(obs_condition_input, (sample_num, 1))
-            obs_condition_input = torch.tensor(obs_condition_input).float().cuda()
+            obs_condition_input = torch.tensor(obs_condition_input).float().cuda().to(device)
             obs_condition_input_list.append(obs_condition_input)
 
         obs_condition_input_list = torch.vstack(obs_condition_input_list)
 
-        if sample_type == "full_sample":
-            t_final_control_samples = sample_diffusion(condition_input=obs_condition_input_list,
-                                                       input_output_type="input_obs_output_t_control",
-                                                       checkpoint_parent_path=input_obs_output_time_control_parent_path,
-                                                       sample_num=sample_num * condition_seed_num,
-                                                       diffusion_w=diffusion_w)
-            obs_condition_input_list = obs_condition_input_list.detach().cpu().numpy()
-            t_final_control_samples = t_final_control_samples.detach().cpu().numpy()
+        # First sample t_final using CVAE
+        t_final_samples = get_sample_from_vanilla_cvae(condition_input=obs_condition_input_list,
+                                                               sample_num=sample_num * condition_seed_num)
+        t_final_samples = t_final_samples.to(obs_condition_input_list.device)
+        obs_t_final_samples = torch.hstack([obs_condition_input_list, t_final_samples])
 
-            obs_t_final_control_samples = np.hstack((obs_condition_input_list, t_final_control_samples))
+        control_samples = get_sample_from_rnn(conditional_input=obs_t_final_samples)
+
+        obs_condition_input_list = obs_condition_input_list.detach().cpu().numpy()
+        t_final_samples = t_final_samples.detach().cpu().numpy()
+
+        obs_t_final_control_samples = np.hstack([obs_condition_input_list, t_final_samples, control_samples])
 
 
         current_prediction_data_list.append(copy.copy(obs_t_final_control_samples))
@@ -136,91 +118,33 @@ def main():
                     CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
         print("data normalization is done")
 
+        # # Save as a whole file
+        # sample_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/{data_type}"
+        # if not os.path.exists(sample_data_parent_path):
+        #     os.makedirs(sample_data_parent_path, exist_ok=True)
+        # sample_data_path = f"{sample_data_parent_path}/{data_type}_num_{condition_seed_num * sample_num}.pkl"
+        # with open(sample_data_path, 'wb') as f:
+        #     pickle.dump(obs_t_final_control_samples, f)
+        # print(f"{sample_data_path} is saved")
+
+        # Save as several file
+        total_num = sample_num * condition_seed_num
+        for num in range(total_num):
+            curr_conditional_seed = 5000 + num // 10
+            curr_initial_guess_seed = num % 10
+
+            warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/car/{data_type}"
+            if not os.path.exists(warmstart_data_parent_path):
+                os.makedirs(warmstart_data_parent_path, exist_ok=True)
+            warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{curr_conditional_seed}_initial_guess_seed_{curr_initial_guess_seed}.pkl"
+            with open(warmstart_data_path, 'wb') as f:
+                pickle.dump(obs_t_final_control_samples[num, :], f)
+            print(f"{warmstart_data_path} is saved")
 
     for i in range(len(constraint_violation_list)):
         print(f"{data_type_list[i]}, constraint violation {constraint_violation_list[i]}")
 
-def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path, sample_num, diffusion_w):
-
-    # Initialize model ############################################################################
-    unet_dim = 128
-    unet_dim_mults = "4,4,8"
-    unet_dim_mults = tuple(map(int, unet_dim_mults.split(',')))
-    embed_class_layers_dims = "256,512"
-    embed_class_layers_dims = tuple(map(int, embed_class_layers_dims.split(',')))
-    timesteps = 500
-    objective = "pred_noise"
-    batch_size = 512
-    cond_drop_prob = 0.1
-
-    if input_output_type == "input_obs_output_t":
-        class_dim = 6
-        channel = 1
-        seq_length = 1
-    elif input_output_type == "input_obs_t_output_control":
-        class_dim = 7
-        channel = 4
-        seq_length = 20
-    elif input_output_type == "input_obs_output_t_control":
-        class_dim = 6
-        channel = 1
-        seq_length = 81
-
-    model = Unet1D(
-        dim=unet_dim,
-        channels=channel,
-        dim_mults=unet_dim_mults,
-        embed_class_layers_dims=embed_class_layers_dims,
-        class_dim=class_dim,
-        cond_drop_prob=cond_drop_prob,
-        seq_length=seq_length
-    )
-
-    diffusion = GaussianDiffusion1D(
-        model=model,
-        seq_length=seq_length,
-        timesteps=timesteps,
-        objective=objective
-    ).cuda()
-
-    # read checkpoints ############################################################################
-    child_directories = glob.glob(os.path.join(checkpoint_parent_path, "*/*/"))
-    if child_directories:
-        final_result_folder = child_directories[0]
-
-    trainer = Trainer1D(
-        diffusion_model=diffusion,
-        dataset=[0, 0, 0],
-        results_folder=final_result_folder,
-    )
-    files = os.listdir(final_result_folder)
-    regex = r"model-epoch-(\d+).pt"  # Modified regex to match 1 or more digits
-    max_epoch = -1
-    milestone = ""
-    for file in files:
-        if file.endswith(".pt"):
-            match = re.search(regex, file)
-            if match:
-                epoch_num = int(match.group(1))
-                if epoch_num > max_epoch:
-                    max_epoch = epoch_num
-                    milestone = f"epoch-{epoch_num}"  # Format with leading zeros
-    # milestone = "epoch-102"
-    trainer.load(milestone)
-
-    # Sample results ################################################################################
-    # 3. Use the loaded model for sampling
-    start_time = time.time()
-    sample_results = diffusion.sample(
-        classes=condition_input.cuda(),
-        cond_scale=diffusion_w,
-    )
-    end_time = time.time()
-    print(f"{input_output_type}, {sample_num} data, takes {end_time - start_time} seconds")
-
-    sample_results = sample_results.reshape(sample_num, -1)
-
-    return sample_results
+    return True
 
 def check_condition(parameters, to_print=False):
     car_num = 2
@@ -266,6 +190,74 @@ def check_condition(parameters, to_print=False):
                     return False
 
     return True
+
+def get_sample_from_vanilla_cvae(sample_num, condition_input, seed=0):
+    parent_dir = "/home/anjian/Desktop/project/generative_trajectory_optimization/logs/icml/car/cvae"
+    cvae_config_path = parent_dir + "/version_0/config.yaml"
+    cvae_ckpt_path = parent_dir + "/version_0/training_stage_3/checkpoints/last.ckpt"
+
+    with open(cvae_config_path, 'r') as file:
+        try:
+            config = yaml.safe_load(file)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    model = generative_models[config['model_params']['model_name']](**config['model_params'],
+                                                                    **config['data_params'])
+
+    # https://pytorch-lightning.readthedocs.io/en/stable/deploy/production_intermediate.html
+    checkpoint = torch.load(cvae_ckpt_path, map_location="cpu")
+    model_weights = checkpoint["state_dict"]
+    for key in list(model_weights):
+        model_weights[key.replace("model.", "")] = model_weights.pop(key)
+    model.load_state_dict(model_weights)
+    model.eval()
+
+    curr_device = "cpu"
+
+    # Sample ###################################################################
+    # Sample x for alpha
+    sample_x_list = []
+
+    output_sample = model.sample(num_samples=sample_num, alpha=torch.tensor(condition_input),
+                                      current_device=curr_device, seed=seed)
+    # output_sample = output_sample.cpu().data.numpy()
+    #
+    # sample_data = np.squeeze(np.asarray(output_sample))
+    # np.random.shuffle(sample_data)
+
+    return output_sample.to("cuda:0")
+
+
+def get_sample_from_rnn(conditional_input):
+
+    rnn_config_path = "/home/anjian/Desktop/project/generative_trajectory_optimization/logs/icml/car/lstm/version_0/config.yaml"
+    rnn_ckpt_path = "/home/anjian/Desktop/project/generative_trajectory_optimization/logs/icml/car/lstm/version_0/training_stage_3/checkpoints/last.ckpt"
+
+    with open(rnn_config_path, 'r') as file:
+        try:
+            config = yaml.safe_load(file)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    model = generative_models[config['model_params']['model_name']](**config['model_params'],
+                                                                    **config['data_params'])
+
+    # https://pytorch-lightning.readthedocs.io/en/stable/deploy/production_intermediate.html
+    checkpoint = torch.load(rnn_ckpt_path, map_location="cpu")
+    model_weights = checkpoint["state_dict"]
+    for key in list(model_weights):
+        model_weights[key.replace("model.", "")] = model_weights.pop(key)
+    model.load_state_dict(model_weights)
+    model.eval()
+
+    curr_device = "cuda:0"
+
+    # sample #########################################################################################################
+
+    [_, control] = model(input=torch.tensor(0.0).to(curr_device), alpha=conditional_input, control_label=torch.tensor(0.0).to(curr_device))
+
+    return control.detach().cpu().numpy()
 
 if __name__ == "__main__":
     main()

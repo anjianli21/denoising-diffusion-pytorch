@@ -6,6 +6,7 @@ import time
 
 from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, \
     Dataset1D
+from denoising_diffusion_pytorch.constraint_violation_function_tabletop import get_constraint_violation_tabletop
 
 import copy
 import numpy as np
@@ -43,6 +44,7 @@ def main():
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
     data_type_list = [
+        f"input_obs_goal_output_time_control_obj_6",
         f"full_data_202k_constraint_weight_0.0001_condscale_1",
         f"full_data_202k_constraint_weight_0.0001_condscale_6",
         f"full_data_202k_constraint_weight_0.001_condscale_1",
@@ -54,6 +56,7 @@ def main():
     # Configure path
     parent_path = f"results/from_autodl/diffusion/tabletop/results"
     input_obs_goal_output_time_control_parent_path_list = [
+        f"{parent_path}/input_obs_goal_output_time_control_obj_6",
         f"{parent_path}/full_data_202k_constraint_weight_0.0001_condscale_1",
         f"{parent_path}/full_data_202k_constraint_weight_0.0001_condscale_6",
         f"{parent_path}/full_data_202k_constraint_weight_0.001_condscale_1",
@@ -62,10 +65,14 @@ def main():
         f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6",
     ]
 
+    constraint_violation_list = []
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
         input_obs_goal_output_time_control_parent_path = input_obs_goal_output_time_control_parent_path_list[i]
 
+        current_prediction_data_list = []
+
+        obs_goal_condition_input_list = []
         for j in range(len(condition_seed_list)):
             condition_seed = condition_seed_list[j]
 
@@ -74,8 +81,6 @@ def main():
             # obs sample
             is_condition_reasonable = False
             while not is_condition_reasonable:
-                print("sample obs again")
-
                 print("sample obs again")
                 car_start_pos = np.array([[5.0, 5.0], [0.0, 0.0], [10.0, 10.0]])
                 car_goal_pos = np.array(
@@ -111,40 +116,70 @@ def main():
             # Repeat the same obs input as the sample num
             obs_goal_condition_input = np.tile(obs_goal_condition_input, (sample_num, 1))
             obs_goal_condition_input = torch.tensor(obs_goal_condition_input).float().cuda()
+            obs_goal_condition_input_list.append(obs_goal_condition_input)
 
-            if sample_type == "full_sample":
-                t_final_control_samples = sample_diffusion(condition_input=obs_goal_condition_input,
-                                                           input_output_type="input_obs_goal_output_t_control",
-                                                           checkpoint_parent_path=input_obs_goal_output_time_control_parent_path,
-                                                           sample_num=sample_num,
-                                                           diffusion_w=diffusion_w)
-                obs_goal_condition_input = obs_goal_condition_input.detach().cpu().numpy()
-                t_final_control_samples = t_final_control_samples.detach().cpu().numpy()
+        obs_goal_condition_input_list = torch.vstack(obs_goal_condition_input_list)
 
-                obs_goal_t_final_control_samples = np.hstack((obs_goal_condition_input, t_final_control_samples))
+        if sample_type == "full_sample":
+            t_final_control_samples = sample_diffusion(condition_input=obs_goal_condition_input_list,
+                                                       input_output_type="input_obs_goal_output_t_control",
+                                                       checkpoint_parent_path=input_obs_goal_output_time_control_parent_path,
+                                                       sample_num=sample_num * condition_seed_num,
+                                                       diffusion_w=diffusion_w)
+            obs_goal_condition_input_list = obs_goal_condition_input_list.detach().cpu().numpy()
+            t_final_control_samples = t_final_control_samples.detach().cpu().numpy()
 
+            obs_goal_t_final_control_samples = np.hstack((obs_goal_condition_input_list, t_final_control_samples))
 
-            # Data preparation #######################################################################################################
-            # obs_pos, original range [2, 8]
-            obs_goal_t_final_control_samples[:, :8] = obs_goal_t_final_control_samples[:, :8] * (OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
-            # obs_radius, original range [0.5, 1.5]
-            obs_goal_t_final_control_samples[:, 8:12] = obs_goal_t_final_control_samples[:, 8:12] * (OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
-            # car goal pos
-            obs_goal_t_final_control_samples[:, 12:14] = obs_goal_t_final_control_samples[:, 12:14] * (GOAL_POS_MAX - GOAL_POS_MIN) + GOAL_POS_MIN
-            # t_final, original range [TIME_MIN, TIME_MAX]
-            obs_goal_t_final_control_samples[:, 14] = obs_goal_t_final_control_samples[:, 14] * (TIME_MAX - TIME_MIN) + TIME_MIN
-            # Control, original range [CONTROL_MIN, CONTROL_MAX]
-            obs_goal_t_final_control_samples[:, 15:] = obs_goal_t_final_control_samples[:, 15:] * (CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
-            print("data normalization is done")
+        current_prediction_data_list.append(copy.copy(obs_goal_t_final_control_samples))
 
-            for num in range(sample_num):
-                warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/tabletop/{data_type}"
-                if not os.path.exists(warmstart_data_parent_path):
-                    os.makedirs(warmstart_data_parent_path, exist_ok=True)
-                warmstart_data_path = f"{warmstart_data_parent_path }/{data_type}_condition_seed_{condition_seed}_initial_guess_seed_{num}.pkl"
-                with open(warmstart_data_path, 'wb') as f:
-                    pickle.dump(obs_goal_t_final_control_samples[num, :], f)
-                print(f"{warmstart_data_path} is saved")
+        # Data preparation #######################################################################################################
+        # obs_pos, original range [2, 8]
+        obs_goal_t_final_control_samples[:, :8] = obs_goal_t_final_control_samples[:, :8] * (
+                    OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
+        # obs_radius, original range [0.5, 1.5]
+        obs_goal_t_final_control_samples[:, 8:12] = obs_goal_t_final_control_samples[:, 8:12] * (
+                    OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
+        # car goal pos
+        obs_goal_t_final_control_samples[:, 12:14] = obs_goal_t_final_control_samples[:, 12:14] * (
+                    GOAL_POS_MAX - GOAL_POS_MIN) + GOAL_POS_MIN
+        # t_final, original range [TIME_MIN, TIME_MAX]
+        obs_goal_t_final_control_samples[:, 14] = obs_goal_t_final_control_samples[:, 14] * (
+                    TIME_MAX - TIME_MIN) + TIME_MIN
+        # Control, original range [CONTROL_MIN, CONTROL_MAX]
+        obs_goal_t_final_control_samples[:, 15:] = obs_goal_t_final_control_samples[:, 15:] * (
+                    CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
+        print("data normalization is done")
+
+        # Save ##########################################################################################################
+        total_num = sample_num * condition_seed_num
+        for num in range(total_num):
+            curr_conditional_seed = 5000 + num // 10
+            curr_initial_guess_seed = num % 10
+
+            warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/tabletop/{data_type}"
+            if not os.path.exists(warmstart_data_parent_path):
+                os.makedirs(warmstart_data_parent_path, exist_ok=True)
+            warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{curr_conditional_seed}_initial_guess_seed_{curr_initial_guess_seed}.pkl"
+            with open(warmstart_data_path, 'wb') as f:
+                pickle.dump(obs_goal_t_final_control_samples[num, :], f)
+            print(f"{warmstart_data_path} is saved")
+
+        #############################################################################
+        # check constraint violation
+        current_prediction_data_list = np.vstack(current_prediction_data_list)
+        current_prediction_data_tensor = torch.tensor(current_prediction_data_list)
+        current_violation = get_constraint_violation_tabletop(x=current_prediction_data_tensor[:, 14:],
+                                                         c=current_prediction_data_tensor[:, :14],
+                                                         scale=torch.tensor(1.0),
+                                                         device=current_prediction_data_tensor.device)
+        print(f"data type is {data_type}, violation is {current_violation}")
+
+        constraint_violation_list.append(current_violation)
+
+    for i in range(len(constraint_violation_list)):
+        print(f"{data_type_list[i]}, constraint violation {constraint_violation_list[i]}")
+
 
 def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path, sample_num, diffusion_w):
 

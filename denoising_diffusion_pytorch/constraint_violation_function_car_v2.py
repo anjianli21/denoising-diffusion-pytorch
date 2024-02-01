@@ -105,7 +105,7 @@ def get_constraint_violation_car(x, c, scale, device):
     violation = v_min_violation + v_max_violation + goal_reaching_violation + obstacle_avoidance_violation + car_avoidance_violation
 
     violation = violation * scale
-    violation = torch.mean(violation)
+    # violation = torch.mean(violation)
 
     return violation
 
@@ -196,5 +196,5 @@ if __name__ == "__main__":
     violation = get_constraint_violation_car(x, c, scale, device)
     print(f"total violation is {violation}")
     # print(torch.autograd.grad(violation, x, create_graph=True))
-    print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
-    print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))
+    # print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
+    # print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))
