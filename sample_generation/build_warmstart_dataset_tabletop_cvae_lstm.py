@@ -42,8 +42,8 @@ def main():
     diffusion_w = 5.0
     device = "cuda:0"
 
-    sample_num = 20
-    condition_seed_num = 10
+    sample_num = 10
+    condition_seed_num = 20
 
     data_type_list = ["cvae_lstm"]
 
@@ -177,14 +177,14 @@ def main():
     return True
 
 def check_condition(parameters, to_print=False):
-    car_num = 2
+    car_num = 1
     car_radius = 0.2
-    obs_num = 2
+    obs_num = 4
     obs_radius = parameters["obs_radius"]
     obs_pos = parameters["obs_pos"]
 
-    car_start_pos = np.array([[0.0, 10.0], [10.0, 10.0], [5.0, 0.0]])
-    car_goal_pos = np.array([[10.0, 0.0], [0.0, 0.0], [5.0, 10.0]])
+    car_start_pos = np.array([[5.0, 5.0]])
+    car_goal_pos = parameters["car_goal_pos"]
 
     # Check if car start and goal positions are far enough from each other
     for i in range(car_num):

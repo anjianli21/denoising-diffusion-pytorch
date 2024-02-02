@@ -28,8 +28,8 @@ def main():
 
     diffusion_w = 5.0
 
-    sample_num = 500
-    condition_seed_num = 10
+    sample_num = 10
+    condition_seed_num = 500
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 

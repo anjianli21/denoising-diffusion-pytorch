@@ -36,8 +36,8 @@ def main():
     diffusion_w = 5.0
     device = "cuda:0"
 
-    sample_num = 20
-    condition_seed_num = 10
+    sample_num = 10
+    condition_seed_num = 500
 
     data_type_list = ["cvae_lstm"]
 
