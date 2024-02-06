@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the variable
-training_data_type="cond_alpha_data_time_mass_control_300k"
+training_data_type="cond_alpha_data_time_mass_control_300k_seed_0"
 
 export CUDA_VISIBLE_DEVICES=3
 export WANDB_DIR="/root/autodl-tmp/project/diffusion/cr3bp/wandb/$training_data_type"

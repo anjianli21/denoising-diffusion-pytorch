@@ -11,6 +11,7 @@ import pickle
 import numpy as np
 from datetime import datetime
 
+import random
 import argparse
 
 def main():
@@ -38,6 +39,9 @@ def main():
     wandb_project_name = f"{wandb_project_name}_range_{training_data_range}"
     result_folder = str(args.result_folder)
     max_epoch = args.max_epoch
+    training_random_seed = args.training_random_seed
+
+    set_seed(seed=training_random_seed)
 
     ####################################################################################################################
     # Build the model
@@ -104,16 +108,6 @@ def main():
 
     num_workers = 1
     checkpoint_folder = f"{result_folder}/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-
-    # if machine == "ubuntu":
-    #     results_folder = f"results/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-    #     num_workers = 1
-    # elif machine == "autodl-car":
-    #     results_folder = f"/root/autodl-tmp/project/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-    #     num_workers = 1
-    # elif machine == "autodl-cr3bp":
-    #     results_folder = f"/root/autodl-tmp/project/diffusion/cr3bp/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-    #     num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
     # max_epoch = 200  # 200
@@ -233,8 +227,25 @@ def parse_args():
                         type=str,
                         default="checkpoint_result/",
                         help="result_folder")
+    parser.add_argument('--training_random_seed',
+                        type=int,
+                        default=77,
+                        help='random seed for model training')
 
     return parser.parse_args()
+
+def set_seed(seed: int = 42) -> None:
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Random seed set as {seed}")
+
 
 if __name__ == "__main__":
     main()
