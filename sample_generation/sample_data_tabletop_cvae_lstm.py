@@ -263,11 +263,12 @@ def get_sample_from_rnn(conditional_input):
     model.load_state_dict(model_weights)
     model.eval()
 
-    curr_device = "cuda:0"
+    # curr_device = "cuda:0"
+    curr_device = "cpu"
 
     # sample #########################################################################################################
 
-    [_, control] = model(input=torch.tensor(0.0).to(curr_device), alpha=conditional_input, control_label=torch.tensor(0.0).to(curr_device))
+    [_, control] = model(input=torch.tensor(0.0).to(curr_device), alpha=conditional_input.to(curr_device), control_label=torch.tensor(0.0).to(curr_device))
 
     return control.detach().cpu().numpy()
 
