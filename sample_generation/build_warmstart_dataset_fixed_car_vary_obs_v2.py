@@ -154,11 +154,16 @@ def main():
                     CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
         print("data normalization is done")
 
-        for num in range(sample_num):
+        # Save ##########################################################################################################
+        total_num = sample_num * condition_seed_num
+        for num in range(total_num):
+            curr_conditional_seed = 5000 + num // 10
+            curr_initial_guess_seed = num % 10
+
             warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/car/{data_type}"
             if not os.path.exists(warmstart_data_parent_path):
                 os.makedirs(warmstart_data_parent_path, exist_ok=True)
-            warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{condition_seed}_initial_guess_seed_{num}.pkl"
+            warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{curr_conditional_seed}_initial_guess_seed_{curr_initial_guess_seed}.pkl"
             with open(warmstart_data_path, 'wb') as f:
                 pickle.dump(obs_t_final_control_samples[num, :], f)
             print(f"{warmstart_data_path} is saved")
