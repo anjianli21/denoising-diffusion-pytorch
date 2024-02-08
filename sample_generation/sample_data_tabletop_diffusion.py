@@ -42,16 +42,29 @@ def main():
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
+    # data_type_list = [
+    #     f"input_obs_goal_output_time_control_obj_6",
+    #     f"full_data_202k_constraint_weight_0.01_condscale_6",
+    # ]
+
     data_type_list = [
-        f"input_obs_goal_output_time_control_obj_6",
-        f"full_data_202k_constraint_weight_0.01_condscale_6",
+        "full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
+        "full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
+        "full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
+        "input_obs_goal_output_time_control_obj_6_seed_0",
+        "input_obs_goal_output_time_control_obj_6_seed_1",
+        "input_obs_goal_output_time_control_obj_6_seed_2",
     ]
 
     # Configure path
     parent_path = f"results/from_autodl/diffusion/tabletop/results"
     input_obs_goal_output_time_control_parent_path_list = [
-        f"{parent_path}/input_obs_goal_output_time_control_obj_6",
-        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6",
+        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
+        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
+        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
+        f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_0",
+        f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_1",
+        f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_2",
     ]
 
     constraint_violation_list = []

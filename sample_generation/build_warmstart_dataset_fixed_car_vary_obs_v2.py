@@ -39,26 +39,44 @@ def main():
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
+    # data_type_list = [
+    #     # f"full_data_114k_constraint_weight_0.0001_condscale_1",
+    #     # f"full_data_114k_constraint_weight_0.0001_condscale_6",
+    #     # f"full_data_114k_constraint_weight_0.001_condscale_1",
+    #     # f"full_data_114k_constraint_weight_0.001_condscale_6",
+    #     # f"full_data_114k_constraint_weight_0.01_condscale_1",
+    #     f"full_data_114k_constraint_weight_0.01_condscale_6",
+    #     # f"input_obs_output_time_control_obj_12_data_114k"
+    #                   ]
+
     data_type_list = [
-        # f"full_data_114k_constraint_weight_0.0001_condscale_1",
-        # f"full_data_114k_constraint_weight_0.0001_condscale_6",
-        # f"full_data_114k_constraint_weight_0.001_condscale_1",
-        # f"full_data_114k_constraint_weight_0.001_condscale_6",
-        # f"full_data_114k_constraint_weight_0.01_condscale_1",
-        f"full_data_114k_constraint_weight_0.01_condscale_6",
-        # f"input_obs_output_time_control_obj_12_data_114k"
-                      ]
+        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        f"input_obs_output_time_control_obj_12_data_114k_seed_0",
+        f"input_obs_output_time_control_obj_12_data_114k_seed_1",
+        f"input_obs_output_time_control_obj_12_data_114k_seed_2",
+    ]
 
     # Configure path
     parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
+    # input_obs_output_time_control_parent_path_list = [
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_1",
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_6",
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.001_condscale_1",
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.001_condscale_6",
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_1",
+    #     f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6",
+    #     # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k"
+    # ]
+
     input_obs_output_time_control_parent_path_list = [
-        # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_1",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_6",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.001_condscale_1",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.001_condscale_6",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_1",
-        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6",
-        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k"
+        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_0",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_1",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
     ]
 
     constraint_violation_list = []
@@ -135,6 +153,15 @@ def main():
         obs_t_final_control_samples[:, 7:] = obs_t_final_control_samples[:, 7:] * (
                     CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
         print("data normalization is done")
+
+        for num in range(sample_num):
+            warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/car/{data_type}"
+            if not os.path.exists(warmstart_data_parent_path):
+                os.makedirs(warmstart_data_parent_path, exist_ok=True)
+            warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{condition_seed}_initial_guess_seed_{num}.pkl"
+            with open(warmstart_data_path, 'wb') as f:
+                pickle.dump(obs_t_final_control_samples[num, :], f)
+            print(f"{warmstart_data_path} is saved")
 
 
     for i in range(len(constraint_violation_list)):

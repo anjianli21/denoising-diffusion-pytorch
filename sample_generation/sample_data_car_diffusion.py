@@ -38,11 +38,29 @@ def main():
         f"input_obs_output_time_control_obj_12_data_114k"
                       ]
 
+    data_type_list = [
+        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        f"input_obs_output_time_control_obj_12_data_114k_seed_0",
+        f"input_obs_output_time_control_obj_12_data_114k_seed_1",
+        f"input_obs_output_time_control_obj_12_data_114k_seed_2",
+    ]
+
     # Configure path
     parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
+    # input_obs_output_time_control_parent_path_list = [
+    #     f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6",
+    #     f"{parent_path}/input_obs_output_time_control_obj_12_data_114k"
+    # ]
+
     input_obs_output_time_control_parent_path_list = [
-        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6",
-        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k"
+        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_0",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_1",
+        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
     ]
 
     constraint_violation_list = []
