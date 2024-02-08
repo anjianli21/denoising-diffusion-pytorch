@@ -25,8 +25,13 @@ import torch
 
 import importlib.util
 
+CVAE_PARENT_DIR = "results/from_autodl/cvae_lstm/car/cvae_seed_0"
+RNN_PARENT_DIR = "results/from_autodl/cvae_lstm/car/lstm_seed_0"
 
 def main():
+
+    data_type_list = ["cvae_lstm_seed_0"]
+
 
     TIME_MIN = 7.81728
     TIME_MAX = 12.0
@@ -39,7 +44,6 @@ def main():
     sample_num = 10
     condition_seed_num = 500
 
-    data_type_list = ["cvae_lstm_test"]
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
@@ -180,7 +184,7 @@ def check_condition(parameters, to_print=False):
     return True
 
 def get_sample_from_vanilla_cvae(sample_num, condition_input, seed=0):
-    parent_dir = "/home/anjian/Desktop/project/generative_trajectory_optimization/logs/icml/car/cvae"
+    parent_dir = CVAE_PARENT_DIR
     cvae_config_path = parent_dir + "/version_0/config.yaml"
     cvae_ckpt_path = parent_dir + "/version_0/training_stage_3/checkpoints/last.ckpt"
 
@@ -218,9 +222,9 @@ def get_sample_from_vanilla_cvae(sample_num, condition_input, seed=0):
 
 
 def get_sample_from_rnn(conditional_input):
-
-    rnn_config_path = "/home/anjian/Desktop/project/generative_trajectory_optimization/logs/icml/car/lstm/version_0/config.yaml"
-    rnn_ckpt_path = "/home/anjian/Desktop/project/generative_trajectory_optimization/logs/icml/car/lstm/version_0/training_stage_3/checkpoints/last.ckpt"
+    rnn_parent_dir = RNN_PARENT_DIR
+    rnn_config_path = f"{rnn_parent_dir}/version_0/config.yaml"
+    rnn_ckpt_path = f"{rnn_parent_dir}/version_0/training_stage_3/checkpoints/last.ckpt"
 
     with open(rnn_config_path, 'r') as file:
         try:

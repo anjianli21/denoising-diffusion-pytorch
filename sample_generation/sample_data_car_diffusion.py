@@ -33,10 +33,10 @@ def main():
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
-    data_type_list = [
-        f"full_data_114k_constraint_weight_0.01_condscale_6",
-        f"input_obs_output_time_control_obj_12_data_114k"
-                      ]
+    # data_type_list = [
+    #     f"full_data_114k_constraint_weight_0.01_condscale_6",
+    #     f"input_obs_output_time_control_obj_12_data_114k"
+    #                   ]
 
     data_type_list = [
         f"full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
