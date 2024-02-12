@@ -245,7 +245,7 @@ def parse_args():
                         help="result_folder")
     parser.add_argument('--constraint_violation_weight',
                         type=float,
-                        default=0.001,
+                        default=0.01,
                         help="weight of the constraint violation term")
     parser.add_argument('--constraint_condscale',
                         type=float,
