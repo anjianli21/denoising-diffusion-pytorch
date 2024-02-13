@@ -133,11 +133,11 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, b
     return state_x, state_y
 
 if __name__ == "__main__":
-    use_local_optimal_data = True
-    # use_local_optimal_data = False
+    # use_local_optimal_data = True
+    use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 200
+    data_num = 6000
     timestep = 80
 
     if use_local_optimal_data:

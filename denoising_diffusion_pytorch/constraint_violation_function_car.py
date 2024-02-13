@@ -173,7 +173,7 @@ if __name__ == "__main__":
     use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 10000
+    data_num = 6000
 
     if use_local_optimal_data:
         data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/local_optimal_data/car/obstacle_time_control_data_obj_12_num_114570.pkl"

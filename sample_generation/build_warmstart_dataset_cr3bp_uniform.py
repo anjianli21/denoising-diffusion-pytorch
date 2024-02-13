@@ -23,16 +23,19 @@ CONTROL_SEGMENT = int(20)  # 60
 
 def main():
 
-    sample_type_list = ["full_sample"]
+    # sample_type_list = ["full_sample"]
+    # data_type = f"diffusion_full_sample_300k_thrust_0.15_seed_2"
+    # input_alpha_output_time_mass_control_parent_path = f"results/from_autodl/diffusion/cr3bp/results/cond_alpha_data_time_mass_control_300k_seed_2"
+
+    # uniform data
+    sample_type_list = ["uniform"]
+    data_type = f"uniform_thrust_0.15_seed_0"
+    seed = 0
+
     training_data_num_list = ["300k"]
-
     diffusion_w = 5.0
-
     alpha_list = [0.15]
-
     sample_num = 2000
-    data_type = f"diffusion_full_sample_300k_thrust_0.15_seed_0"
-    input_alpha_output_time_mass_control_parent_path = f"results/from_autodl/diffusion/cr3bp/results/cond_alpha_data_time_mass_control_300k_seed_0"
 
     for i in range(len(training_data_num_list)):
         training_data_num = training_data_num_list[i]
@@ -41,69 +44,42 @@ def main():
             sample_type = sample_type_list[j]
 
             for k in range(len(alpha_list)):
-                alpha = alpha_list[k]
+                thrust = alpha_list[k]
 
-                # data_type = f"diffusion_{sample_type}_{training_data_num}_thrust_{alpha}"
+                if sample_type == "uniform":
+                    data_time_mass_normalized = get_sample_from_uniform_time_mass(sample_num=sample_num, seed=seed)
+                    normalized_alpha = (thrust - 0.1) / (1.0 - 0.1)
+                    normalized_alpha = normalized_alpha * np.ones((data_time_mass_normalized.shape[0], 1))
+                    data_time_mass_alpha_normalized = np.hstack((data_time_mass_normalized, normalized_alpha))
+                    print(f"thrust = {thrust}, time and mass generated from uniform samples")
 
-                # Configure path
-                # input_alpha_output_time_mass_parent_path = f"results/from_autodl/diffusion/cr3bp/results/cond_alpha_data_time_mass_{training_data_num}"
-                # input_alpha_output_time_mass_control_parent_path = f"results/from_autodl/diffusion/cr3bp/results/cond_alpha_data_time_mass_control_{training_data_num}"
-                # input_alpha_time_mass_output_control_parent_path = f"results/from_autodl/diffusion/cr3bp/results/cond_alpha_time_mass_data_control_{training_data_num}"
+                    number_of_segments = 20
+                    random_state = np.random.RandomState(seed=seed)
+                    theta = random_state.uniform(0, 2 * np.pi, number_of_segments * sample_num)
+                    psi = random_state.uniform(0, 2 * np.pi, number_of_segments * sample_num)
+                    r = random_state.uniform(0, 1, number_of_segments * sample_num)
 
+                    data_control_radius = []
+                    for i in range(sample_num):
+                        data_control_radius_tmp = []
+                        for j in range(number_of_segments):
+                            data_control_radius_tmp.append(theta[i * number_of_segments + j])
+                            data_control_radius_tmp.append(psi[i * number_of_segments + j])
+                            data_control_radius_tmp.append(r[i * number_of_segments + j])
 
-                # Configure alpha conditional input
-                alpha_condition_input = (alpha - 0.1) / (1.0 - 0.1)
-                alpha_condition_input = np.tile(alpha_condition_input, (sample_num, 1))
-                alpha_condition_input = torch.tensor(alpha_condition_input).float().cuda()
+                        data_control_radius.append(data_control_radius_tmp)
+                    data_control_radius = np.asarray(data_control_radius)
+                    print(f"thrust = {thrust}, control generated from uniform sample")
 
-                # Conditional sampling
-                if sample_type == "conditional_sample":
-                    time_mass_samples = sample_diffusion(condition_input=alpha_condition_input,
-                                                       input_output_type="input_alpha_output_time_mass",
-                                                       checkpoint_parent_path=input_alpha_output_time_mass_parent_path,
-                                                       sample_num=sample_num,
-                                                       diffusion_w=diffusion_w)
-
-                    alpha_time_mass_condition_input = torch.hstack((alpha_condition_input, time_mass_samples))
-
-                    control_samples = sample_diffusion(condition_input=alpha_time_mass_condition_input,
-                                                       input_output_type="input_alpha_time_mass_output_control",
-                                                       checkpoint_parent_path=input_alpha_time_mass_output_control_parent_path,
-                                                       sample_num=sample_num,
-                                                       diffusion_w=diffusion_w)
-
-                    time_mass_samples = time_mass_samples.detach().cpu().numpy()
-                    control_samples = control_samples.detach().cpu().numpy()
-
-                    time_samples = time_mass_samples[:, :3]
-                    mass_samples = time_mass_samples[:, -1].reshape(-1, 1)
-                    time_control_samples = np.hstack((time_samples, control_samples))
-                    time_control_mass_samples = np.hstack((time_control_samples, mass_samples))
-
-                elif sample_type == "full_sample":
-                    time_mass_control_samples = sample_diffusion(condition_input=alpha_condition_input,
-                                                               input_output_type="input_alpha_output_time_mass_control",
-                                                               checkpoint_parent_path=input_alpha_output_time_mass_control_parent_path,
-                                                               sample_num=sample_num,
-                                                               diffusion_w=diffusion_w)
-                    time_mass_control_samples = time_mass_control_samples.detach().cpu().numpy()
-
-                    time_samples = time_mass_control_samples[:, :3]
-                    mass_samples = time_mass_control_samples[:, 3].reshape(-1, 1)
-                    control_samples = time_mass_control_samples[:, 4:]
-                    time_control_samples = np.hstack((time_samples, control_samples))
-                    time_control_mass_samples = np.hstack((time_control_samples, mass_samples))
-
-                # Data preparation #######################################################################################################
-                time_control_mass_samples[:, 0] = time_control_mass_samples[:, 0] * (
-                        MAXIMUM_SHOOTING_TIME - MINIMUM_SHOOTING_TIME) + MINIMUM_SHOOTING_TIME
-                time_control_mass_samples[:, 1] = time_control_mass_samples[:, 1] * 15.0
-                time_control_mass_samples[:, 2] = time_control_mass_samples[:, 2] * 15.0
-                time_control_mass_samples[:, -1] = time_control_mass_samples[:, -1] * (MAX_MASS - 415.0) + 415.0
-                time_control_mass_samples[:, 3:-1] = time_control_mass_samples[:, 3:-1] * 2.0 - 1.0
-                print("data normalization is done")
-
-                time_control_mass_samples_spherical = revert_converted_u_data(time_control_mass_samples)
+                    # Data normalization
+                    full_solution = np.hstack((np.hstack((data_time_mass_normalized[:, :3], data_control_radius)),
+                                               data_time_mass_normalized[:, -1].reshape(-1, 1)))
+                    full_solution[:, 0] = full_solution[:, 0] * (
+                            MAXIMUM_SHOOTING_TIME - MINIMUM_SHOOTING_TIME) + MINIMUM_SHOOTING_TIME
+                    full_solution[:, 1] = full_solution[:, 1] * 15.0
+                    full_solution[:, 2] = full_solution[:, 2] * 15.0
+                    full_solution[:, -1] = full_solution[:, -1] * (MAX_MASS - 415.0) + 415.0
+                    data_in_spherical = copy.copy(full_solution)
 
                 for num in range(sample_num):
                     warmstart_data_parent_path = f"/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/icml_data/warmstart_data/{data_type}"
@@ -111,7 +87,7 @@ def main():
                         os.makedirs(warmstart_data_parent_path, exist_ok=True)
                     warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_seed_{num}.pkl"
                     with open(warmstart_data_path, 'wb') as f:
-                        pickle.dump(time_control_mass_samples_spherical[num, :], f)
+                        pickle.dump(data_in_spherical[num, :], f)
                     print(f"{warmstart_data_path} is saved")
 
 def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path, sample_num, diffusion_w):
@@ -236,6 +212,37 @@ def revert_converted_u_data(converted_u_data):
     data_total = np.hstack((time_data, control_data, mass_data))
 
     return data_total
+
+
+def get_sample_from_uniform_time_mass(sample_num, seed):
+    random_state = np.random.RandomState(seed=seed)
+    t_shooting = random_state.uniform(MINIMUM_SHOOTING_TIME, MAXIMUM_SHOOTING_TIME, sample_num)
+    t_init = random_state.uniform(0, 15.0, sample_num)
+    t_final = random_state.uniform(0, 15.0, sample_num)
+    mass = random_state.uniform(415.0, MAX_MASS, sample_num)
+    sample_data = []
+    for i in range(sample_num):
+        data = []
+        data.append(t_shooting[i])
+        data.append(t_init[i])
+        data.append(t_final[i])
+        data.append(mass[i])
+        data = np.asarray(data)
+
+        sample_data.append(data)
+
+    sample_data = np.asarray(sample_data)
+
+    normalized_sample_data = np.zeros_like(sample_data)
+    normalized_sample_data[:, 0] = (sample_data[:, 0] - MINIMUM_SHOOTING_TIME) / (MAXIMUM_SHOOTING_TIME - MINIMUM_SHOOTING_TIME)
+    normalized_sample_data[:, 1] = sample_data[:, 1] / 15.0
+    normalized_sample_data[:, 2] = sample_data[:, 2] / 15.0
+    normalized_sample_data[:, -1] = (sample_data[:, -1] - 415.0) / (
+                MAX_MASS - 415.0)
+
+    normalized_sample_data = normalized_sample_data.astype(np.float32)
+
+    return normalized_sample_data
 
 if __name__ == "__main__":
     main()
