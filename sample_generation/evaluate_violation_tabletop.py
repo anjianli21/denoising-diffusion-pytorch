@@ -2,7 +2,7 @@ import pickle
 import glob
 import os
 import torch
-from denoising_diffusion_pytorch.constraint_violation_function_tabletop_v2 import get_constraint_violation_tabletop
+from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2_evaluate import get_constraint_violation_tabletop
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -24,28 +24,28 @@ def evaluate_violation_car():
     # ]
 
     # # Constrained
-    # data_parent_path_list = [
-    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/constrained_diffusion_seed_0",
-    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/constrained_diffusion_seed_1",
-    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/constrained_diffusion_seed_2",
-    # ]
-    # data_type_list = [
-    #     "constrained_diffusion_seed_0",
-    #     "constrained_diffusion_seed_1",
-    #     "constrained_diffusion_seed_1",
-    # ]
-
-    # # # Diffusion
     data_parent_path_list = [
-            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/diffusion_seed_0",
-            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/diffusion_seed_1",
-            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/diffusion_seed_2",
+            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_0",
+            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_1",
+            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_2",
     ]
     data_type_list = [
-        "diffusion_seed_0",
-        "diffusion_seed_1",
-        "diffusion_seed_2",
+        "tabletop_v2_constrained_diffusion_seed_0",
+        "tabletop_v2_constrained_diffusion_seed_1",
+        "tabletop_v2_constrained_diffusion_seed_2",
     ]
+
+    # # # Diffusion
+    # data_parent_path_list = [
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_0",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_1",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_2",
+    # ]
+    # data_type_list = [
+    #     "tabletop_v2_diffusion_seed_0",
+    #     "tabletop_v2_diffusion_seed_1",
+    #     "tabletop_v2_diffusion_seed_2",
+    # ]
 
     # # # cvae lstm
     # data_parent_path_list = [
@@ -60,7 +60,7 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_2",
     # ]
 
-    # uniform
+#     # uniform
 #     data_parent_path_list = [
 #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
 #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
@@ -73,12 +73,23 @@ def evaluate_violation_car():
 #         "uniform_seed_2",
 #     ]
 
+    # # local optimal
+    # data_parent_path_list = [
+    #     "",
+    # ]
+    #
+    # data_type_list = [
+    #     "local_optimal",
+    # ]
+
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
         data_parent_path = data_parent_path_list[i]
-        # data_path = f"{data_parent_path}/{data_type}/{data_type}_num_{num}.pkl"
-        data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
-
+        if data_type == "local_optimal":
+            # Local optimal
+            data_path = "data/tabletop_v2/tabletop_v2_obs_goal_time_control_num_237370.pkl"
+        else:
+            data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
 
         with open(data_path, 'rb') as f:
             data = pickle.load(f)

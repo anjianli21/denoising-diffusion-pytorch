@@ -84,7 +84,7 @@ def get_constraint_violation_tabletop(x, c, scale, device):
     violation = goal_reaching_violation + obstacle_avoidance_violation
 
     violation = violation * scale
-    violation = torch.mean(violation)
+    # violation = torch.mean(violation)
 
     return violation
 
@@ -133,16 +133,15 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, b
     return state_x, state_y
 
 if __name__ == "__main__":
-    use_local_optimal_data = True
-    # use_local_optimal_data = False
+    # use_local_optimal_data = True
+    use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 2000
+    data_num = 6000
     timestep = 80
 
     if use_local_optimal_data:
         data_path = "data/tabletop_v2/tabletop_v2_obs_goal_time_control_num_237370.pkl"
-        # data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_0/tabletop_v2_diffusion_seed_0_num_2000.pkl"
         with open(data_path, 'rb') as f:
             local_optimal_data = pickle.load(f)
 

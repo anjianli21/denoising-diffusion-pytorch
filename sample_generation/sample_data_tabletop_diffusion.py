@@ -6,7 +6,7 @@ import time
 
 from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, \
     Dataset1D
-from denoising_diffusion_pytorch.constraint_violation_function_tabletop import get_constraint_violation_tabletop
+from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2 import get_constraint_violation_tabletop
 
 import copy
 import numpy as np
@@ -64,9 +64,12 @@ def main():
     # ]
 
     data_type_list = [
-        "tabletop_v2_diffusion_seed_0",
-        "tabletop_v2_diffusion_seed_1",
-        "tabletop_v2_diffusion_seed_2",
+        # "tabletop_v2_diffusion_seed_0",
+        # "tabletop_v2_diffusion_seed_1",
+        # "tabletop_v2_diffusion_seed_2",
+        "tabletop_v2_constrained_diffusion_seed_0",
+        "tabletop_v2_constrained_diffusion_seed_1",
+        "tabletop_v2_constrained_diffusion_seed_2",
     ]
 
     # Configure path
@@ -81,9 +84,12 @@ def main():
     # ]
 
     input_obs_goal_output_time_control_parent_path_list = [
-        f"{parent_path}/tabletop_v2_diffusion_seed_0",
-        f"{parent_path}/tabletop_v2_diffusion_seed_1",
-        f"{parent_path}/tabletop_v2_diffusion_seed_2",
+        # f"{parent_path}/tabletop_v2_diffusion_seed_0",
+        # f"{parent_path}/tabletop_v2_diffusion_seed_1",
+        # f"{parent_path}/tabletop_v2_diffusion_seed_2",
+        f"{parent_path}/tabletop_v2_constrained_diffusion_seed_0",
+        f"{parent_path}/tabletop_v2_constrained_diffusion_seed_1",
+        f"{parent_path}/tabletop_v2_constrained_diffusion_seed_2",
     ]
 
     constraint_violation_list = []
