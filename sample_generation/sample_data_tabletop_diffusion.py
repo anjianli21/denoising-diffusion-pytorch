@@ -18,14 +18,26 @@ import importlib.util
 
 
 def main():
-    TIME_MIN = 3.67867
-    TIME_MAX = 6.0
+    # TIME_MIN = 3.67867
+    # TIME_MAX = 6.0
+    # CONTROL_MIN = - 1.0005
+    # CONTROL_MAX = 1.0005
+    # OBS_POS_MIN = 1.0
+    # OBS_POS_MAX = 9.0
+    # OBS_RADIUS_MIN = 0.2
+    # OBS_RADIUS_MAX = 0.5
+    # GOAL_POS_MIN = 1.0
+    # GOAL_POS_MAX = 9.0
+
+    # Setup v2
+    TIME_MIN = 4.64922
+    TIME_MAX = 5.4
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
     OBS_POS_MIN = 1.0
     OBS_POS_MAX = 9.0
-    OBS_RADIUS_MIN = 0.2
-    OBS_RADIUS_MAX = 0.5
+    OBS_RADIUS_MIN = 0.5
+    OBS_RADIUS_MAX = 1.0
     GOAL_POS_MIN = 1.0
     GOAL_POS_MAX = 9.0
 
@@ -38,33 +50,40 @@ def main():
     # constraint_violation_weight_list = [0.01, 0.001]
 
     sample_num = 10
-    condition_seed_num = 500
+    condition_seed_num = 200
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
     # data_type_list = [
-    #     f"input_obs_goal_output_time_control_obj_6",
-    #     f"full_data_202k_constraint_weight_0.01_condscale_6",
+    #     "full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
+    #     "full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
+    #     "full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
+    #     "input_obs_goal_output_time_control_obj_6_seed_0",
+    #     "input_obs_goal_output_time_control_obj_6_seed_1",
+    #     "input_obs_goal_output_time_control_obj_6_seed_2",
     # ]
 
     data_type_list = [
-        "full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
-        "full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
-        "full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
-        "input_obs_goal_output_time_control_obj_6_seed_0",
-        "input_obs_goal_output_time_control_obj_6_seed_1",
-        "input_obs_goal_output_time_control_obj_6_seed_2",
+        "tabletop_v2_diffusion_seed_0",
+        "tabletop_v2_diffusion_seed_1",
+        "tabletop_v2_diffusion_seed_2",
     ]
 
     # Configure path
-    parent_path = f"results/from_autodl/diffusion/tabletop/results"
+    parent_path = f"results/from_autodl/diffusion/tabletop_v2/results"
+    # input_obs_goal_output_time_control_parent_path_list = [
+    #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
+    #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
+    #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
+    #     f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_0",
+    #     f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_1",
+    #     f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_2",
+    # ]
+
     input_obs_goal_output_time_control_parent_path_list = [
-        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
-        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
-        f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
-        f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_0",
-        f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_1",
-        f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_2",
+        f"{parent_path}/tabletop_v2_diffusion_seed_0",
+        f"{parent_path}/tabletop_v2_diffusion_seed_1",
+        f"{parent_path}/tabletop_v2_diffusion_seed_2",
     ]
 
     constraint_violation_list = []
@@ -93,10 +112,21 @@ def main():
                 pos_y_min = np.minimum(car_start_pos[0][1], car_goal_pos[0][1])
                 pos_x_max = np.maximum(car_start_pos[0][0], car_goal_pos[0][0])
                 pos_y_max = np.maximum(car_start_pos[0][1], car_goal_pos[0][1])
-                obs_pos_x = rng_condition.rand(4) * (pos_x_max - pos_x_min) + pos_x_min
-                obs_pos_y = rng_condition.rand(4) * (pos_y_max - pos_y_min) + pos_y_min
+                obs_pos_x = rng_condition.rand(3) * (pos_x_max - pos_x_min) + pos_x_min
+                obs_pos_y = rng_condition.rand(3) * (pos_y_max - pos_y_min) + pos_y_min
 
-                obs_pos = np.hstack((obs_pos_x.reshape(-1, 1), obs_pos_y.reshape(-1, 1)))
+                # random sample from 0.3 to 1.0
+                center_obs_pos_x = (rng_condition.rand(1) * 0.7 + 0.3) * (pos_x_max - pos_x_min) + pos_x_min
+                gradient = (car_goal_pos[0][1] - car_start_pos[0][1]) / (
+                        car_goal_pos[0][0] - car_start_pos[0][0])
+                center_obs_pos_y = car_start_pos[0][1] + (
+                        center_obs_pos_x - car_start_pos[0][0]) * gradient
+
+                all_obs_pos_x = np.hstack([obs_pos_x, center_obs_pos_x])
+                all_obs_pos_y = np.hstack([obs_pos_y, center_obs_pos_y])
+
+                obs_pos = np.hstack((all_obs_pos_x.reshape(-1, 1), all_obs_pos_y.reshape(-1, 1)))
+                # obs_pos = np.hstack((obs_pos_x.reshape(-1, 1), obs_pos_y.reshape(-1, 1)))
 
                 parameters = {}
                 parameters["obs_radius"] = obs_radius
@@ -148,7 +178,7 @@ def main():
         constraint_violation_list.append(current_violation)
 
         # Save ##########################################################################################################
-        sample_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop/{data_type}"
+        sample_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}"
         if not os.path.exists(sample_data_parent_path):
             os.makedirs(sample_data_parent_path, exist_ok=True)
         sample_data_path = f"{sample_data_parent_path}/{data_type}_num_{condition_seed_num * sample_num}.pkl"
@@ -175,7 +205,7 @@ def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path,
     if input_output_type == "input_obs_goal_output_t_control":
         class_dim = 14
         channel = 1
-        seq_length = 81
+        seq_length = 161
     else:
         print("wrong input output type")
         exit()

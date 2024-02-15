@@ -25,21 +25,34 @@ import torch
 
 import importlib.util
 
-CVAE_PARENT_DIR = "results/from_autodl/cvae_lstm/tabletop/cvae_seed_0"
-RNN_PARENT_DIR = "results/from_autodl/cvae_lstm/tabletop/lstm_seed_0"
+CVAE_PARENT_DIR = "results/from_autodl/cvae_lstm/tabletop_v2/cvae_seed_2"
+RNN_PARENT_DIR = "results/from_autodl/cvae_lstm/tabletop_v2/lstm_seed_2"
 
 def main():
 
-    data_type_list = ["cvae_lstm_seed_0"]
+    data_type_list = ["cvae_lstm_seed_2"]
 
-    TIME_MIN = 3.67867
-    TIME_MAX = 6.0
+    # Setup v1
+    # TIME_MIN = 3.67867
+    # TIME_MAX = 6.0
+    # CONTROL_MIN = - 1.0005
+    # CONTROL_MAX = 1.0005
+    # OBS_POS_MIN = 1.0
+    # OBS_POS_MAX = 9.0
+    # OBS_RADIUS_MIN = 0.2
+    # OBS_RADIUS_MAX = 0.5
+    # GOAL_POS_MIN = 1.0
+    # GOAL_POS_MAX = 9.0
+
+    # Setup v2
+    TIME_MIN = 4.64922
+    TIME_MAX = 5.4
     CONTROL_MIN = - 1.0005
     CONTROL_MAX = 1.0005
     OBS_POS_MIN = 1.0
     OBS_POS_MAX = 9.0
-    OBS_RADIUS_MIN = 0.2
-    OBS_RADIUS_MAX = 0.5
+    OBS_RADIUS_MIN = 0.5
+    OBS_RADIUS_MAX = 1.0
     GOAL_POS_MIN = 1.0
     GOAL_POS_MAX = 9.0
 
@@ -47,7 +60,7 @@ def main():
     device = "cuda:0"
 
     sample_num = 10
-    condition_seed_num = 500
+    condition_seed_num = 200
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
@@ -75,10 +88,21 @@ def main():
                 pos_y_min = np.minimum(car_start_pos[0][1], car_goal_pos[0][1])
                 pos_x_max = np.maximum(car_start_pos[0][0], car_goal_pos[0][0])
                 pos_y_max = np.maximum(car_start_pos[0][1], car_goal_pos[0][1])
-                obs_pos_x = rng_condition.rand(4) * (pos_x_max - pos_x_min) + pos_x_min
-                obs_pos_y = rng_condition.rand(4) * (pos_y_max - pos_y_min) + pos_y_min
+                obs_pos_x = rng_condition.rand(3) * (pos_x_max - pos_x_min) + pos_x_min
+                obs_pos_y = rng_condition.rand(3) * (pos_y_max - pos_y_min) + pos_y_min
 
-                obs_pos = np.hstack((obs_pos_x.reshape(-1, 1), obs_pos_y.reshape(-1, 1)))
+                # random sample from 0.3 to 1.0
+                center_obs_pos_x = (rng_condition.rand(1) * 0.7 + 0.3) * (pos_x_max - pos_x_min) + pos_x_min
+                gradient = (car_goal_pos[0][1] - car_start_pos[0][1]) / (
+                        car_goal_pos[0][0] - car_start_pos[0][0])
+                center_obs_pos_y = car_start_pos[0][1] + (
+                        center_obs_pos_x - car_start_pos[0][0]) * gradient
+
+                all_obs_pos_x = np.hstack([obs_pos_x, center_obs_pos_x])
+                all_obs_pos_y = np.hstack([obs_pos_y, center_obs_pos_y])
+
+                obs_pos = np.hstack((all_obs_pos_x.reshape(-1, 1), all_obs_pos_y.reshape(-1, 1)))
+                # obs_pos = np.hstack((obs_pos_x.reshape(-1, 1), obs_pos_y.reshape(-1, 1)))
 
                 parameters = {}
                 parameters["obs_radius"] = obs_radius
@@ -133,7 +157,7 @@ def main():
         constraint_violation_list.append(current_violation)
 
         # Save as a whole file
-        sample_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop/{data_type}"
+        sample_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}"
         if not os.path.exists(sample_data_parent_path):
             os.makedirs(sample_data_parent_path, exist_ok=True)
         sample_data_path = f"{sample_data_parent_path}/{data_type}_num_{condition_seed_num * sample_num}.pkl"

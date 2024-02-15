@@ -11,7 +11,7 @@ import copy
 
 
 def evaluate_violation_car():
-    num = 5000
+    num = 2000
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop"
     #
     # data_type_list = [
@@ -24,43 +24,58 @@ def evaluate_violation_car():
     # ]
 
     # # Constrained
-    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop/full_data_202k_constraint_weight_0.01_condscale_6"
-    #
+    # data_parent_path_list = [
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/constrained_diffusion_seed_0",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/constrained_diffusion_seed_1",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/constrained_diffusion_seed_2",
+    # ]
     # data_type_list = [
-    #     "full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
-    #     "full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
-    #     "full_data_202k_constraint_weight_0.01_condscale_6_seed_2",
+    #     "constrained_diffusion_seed_0",
+    #     "constrained_diffusion_seed_1",
+    #     "constrained_diffusion_seed_1",
     # ]
 
-    # # Diffusion
-    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop/input_obs_goal_output_time_control_obj_6"
-    #
-    # data_type_list = [
-    #     "input_obs_goal_output_time_control_obj_6_seed_0",
-    #     "input_obs_goal_output_time_control_obj_6_seed_1",
-    #     "input_obs_goal_output_time_control_obj_6_seed_2",
-    # ]
+    # # # Diffusion
+    data_parent_path_list = [
+            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/diffusion_seed_0",
+            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/diffusion_seed_1",
+            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/diffusion_seed_2",
+    ]
+    data_type_list = [
+        "diffusion_seed_0",
+        "diffusion_seed_1",
+        "diffusion_seed_2",
+    ]
 
-    # # cvae lstm
-    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop/cvae_lstm"
+    # # # cvae lstm
+    # data_parent_path_list = [
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/cvae_lstm_seed_0",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/cvae_lstm_seed_1",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/cvae_lstm_seed_2",
+    # ]
     #
     # data_type_list = [
-    #     "cvae_lstm",
     #     "cvae_lstm_seed_0",
     #     "cvae_lstm_seed_1",
+    #     "cvae_lstm_seed_2",
     # ]
 
     # uniform
-    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop/uniform"
-
-    data_type_list = [
-        "uniform",
-        "uniform_seed_1",
-        "uniform_seed_2",
-    ]
+#     data_parent_path_list = [
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
+# ]
+#
+#     data_type_list = [
+#         "uniform_seed_0",
+#         "uniform_seed_1",
+#         "uniform_seed_2",
+#     ]
 
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
+        data_parent_path = data_parent_path_list[i]
         # data_path = f"{data_parent_path}/{data_type}/{data_type}_num_{num}.pkl"
         data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
 
