@@ -989,6 +989,9 @@ class GaussianDiffusion1D(nn.Module):
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
+
+        print(f"mse loss {loss.mean()}")
+        print(f"violation loss {violation_loss}")
         return loss.mean() + coef * violation_loss
 
     def forward(self, img, *args, **kwargs):

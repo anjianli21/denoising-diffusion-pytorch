@@ -17,7 +17,7 @@ module load anaconda3/2021.11
 conda activate pydylan
 
 # Define the variable
-training_data_type="tabletop_v2_constrained_diffusion_seed_0"
+training_data_type="tabletop_v2_constrained_improved_diffusion_seed_0"
 
 export WANDB_DIR="/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/tabletop_v2/$training_data_type"
 export WANDB_MODE=offline

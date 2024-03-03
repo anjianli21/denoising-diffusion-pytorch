@@ -960,7 +960,7 @@ class GaussianDiffusion1D(nn.Module):
         # Step 4: Compute the average violation loss across the 100 samples for each batch item
         gt_average_violation_loss = reshaped_violation_losses.mean(dim=1)
 
-        nn_violation_loss = get_constraint_violation_tabletop(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1./(t+1), x_start.device)
+        nn_violation_loss = get_constraint_violation_tabletop(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1., x_start.device)
         difference = nn_violation_loss - gt_average_violation_loss
         violation_loss = torch.max(difference, torch.zeros_like(difference))
         violation_loss = torch.mean(violation_loss)
@@ -970,6 +970,9 @@ class GaussianDiffusion1D(nn.Module):
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
+
+        print(f"mse loss {loss.mean()}")
+        print(f"violation loss {violation_loss}")
         return loss.mean() + coef * violation_loss
 
     def forward(self, img, *args, **kwargs):

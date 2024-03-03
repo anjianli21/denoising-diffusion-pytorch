@@ -17,8 +17,8 @@ module load anaconda3/2021.11
 conda activate pydylan
 
 # Define the variable
-training_data_type="tabletop_v2_constrained_improved_diffusion_seed_0"
+training_data_type="tabletop_v2_constrained_improved_weight_01_diffusion_seed_1"
 
 export WANDB_DIR="/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/tabletop_v2/$training_data_type"
 export WANDB_MODE=offline
-python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d_constraint_improved_tabletop.py --training_random_seed 0 --constraint_violation_weight 0.01 --constraint_condscale 6.0 --training_data_num 237370 --result_folder /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/tabletop_v2/results --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/tabletop_v2_obs_goal_time_control_num_237370.pkl --class_dim 14 --channel_num 1 --seq_length 161 --wandb_project_name diffusion_tabletop_v2_$training_data_type --training_data_type $training_data_type
+python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classifier_free_cond_1d_constraint_improved_tabletop.py --training_random_seed 1 --constraint_violation_weight 0.1 --constraint_condscale 6.0 --training_data_num 237370 --result_folder /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/results/tabletop_v2/results --data_path /scratch/gpfs/al5844/project/denoising-diffusion-pytorch/Data/tabletop_v2_obs_goal_time_control_num_237370.pkl --class_dim 14 --channel_num 1 --seq_length 161 --wandb_project_name diffusion_tabletop_v2_$training_data_type --training_data_type $training_data_type
