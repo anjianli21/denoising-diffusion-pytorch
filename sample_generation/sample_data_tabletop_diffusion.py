@@ -67,13 +67,17 @@ def main():
         # "tabletop_v2_diffusion_seed_0",
         # "tabletop_v2_diffusion_seed_1",
         # "tabletop_v2_diffusion_seed_2",
-        "tabletop_v2_constrained_diffusion_seed_0",
-        "tabletop_v2_constrained_diffusion_seed_1",
-        "tabletop_v2_constrained_diffusion_seed_2",
+        # "tabletop_v2_constrained_diffusion_seed_0",
+        # "tabletop_v2_constrained_diffusion_seed_1",
+        # "tabletop_v2_constrained_diffusion_seed_2",
+        "tabletop_v2_constrained_diffusion_weight_01_seed_0",
+        "tabletop_v2_constrained_diffusion_weight_01_seed_1",
+        "tabletop_v2_constrained_diffusion_weight_01_seed_2",
     ]
 
-    # Configure path
+    # Configure path ##############################################################################################
     parent_path = f"results/from_autodl/diffusion/tabletop_v2/results"
+
     # input_obs_goal_output_time_control_parent_path_list = [
     #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
     #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_1",
@@ -87,9 +91,12 @@ def main():
         # f"{parent_path}/tabletop_v2_diffusion_seed_0",
         # f"{parent_path}/tabletop_v2_diffusion_seed_1",
         # f"{parent_path}/tabletop_v2_diffusion_seed_2",
-        f"{parent_path}/tabletop_v2_constrained_diffusion_seed_0",
-        f"{parent_path}/tabletop_v2_constrained_diffusion_seed_1",
-        f"{parent_path}/tabletop_v2_constrained_diffusion_seed_2",
+        # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_0",
+        # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_1",
+        # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_2",
+        f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_0",
+        f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_1",
+        f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_2",
     ]
 
     constraint_violation_list = []

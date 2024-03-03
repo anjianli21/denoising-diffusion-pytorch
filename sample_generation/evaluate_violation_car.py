@@ -22,14 +22,14 @@ def evaluate_violation_car():
     #     "cvae_lstm",
     # ]
 
-    # # Constrained
-    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/full_data_114k_constraint_weight_0.01_condscale_6"
-    #
-    # data_type_list = [
-    #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
-    #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
-    #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
-    # ]
+    # Constrained
+    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/full_data_114k_constraint_weight_0.01_condscale_6"
+
+    data_type_list = [
+        "full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+        "full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        "full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+    ]
 
     # # Diffusion
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/input_obs_output_time_control_obj_12_data_114k"
@@ -49,14 +49,14 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_1",
     # ]
 
-    # uniform
-    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/uniform"
-
-    data_type_list = [
-        "uniform",
-        "uniform_seed_1",
-        "uniform_seed_2",
-    ]
+    # # uniform
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/uniform"
+    #
+    # data_type_list = [
+    #     "uniform",
+    #     "uniform_seed_1",
+    #     "uniform_seed_2",
+    # ]
 
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]

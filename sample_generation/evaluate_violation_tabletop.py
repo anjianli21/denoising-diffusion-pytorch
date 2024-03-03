@@ -23,17 +23,29 @@ def evaluate_violation_car():
     #     "cvae_lstm"
     # ]
 
-    # # Constrained
-    data_parent_path_list = [
-            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_0",
-            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_1",
-            "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_2",
-    ]
-    data_type_list = [
-        "tabletop_v2_constrained_diffusion_seed_0",
-        "tabletop_v2_constrained_diffusion_seed_1",
-        "tabletop_v2_constrained_diffusion_seed_2",
-    ]
+    # # Constrained， weight 0.1
+    # data_parent_path_list = [
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_weight_01_seed_0",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_weight_01_seed_1",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_weight_01_seed_2",
+    # ]
+    # data_type_list = [
+    #     "tabletop_v2_constrained_diffusion_weight_01_seed_0",
+    #     "tabletop_v2_constrained_diffusion_weight_01_seed_1",
+    #     "tabletop_v2_constrained_diffusion_weight_01_seed_2",
+    # ]
+
+    # # # Constrained
+    # data_parent_path_list = [
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_0",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_1",
+    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_2",
+    # ]
+    # data_type_list = [
+    #     "tabletop_v2_constrained_diffusion_seed_0",
+    #     "tabletop_v2_constrained_diffusion_seed_1",
+    #     "tabletop_v2_constrained_diffusion_seed_2",
+    # ]
 
     # # # Diffusion
     # data_parent_path_list = [
@@ -60,18 +72,18 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_2",
     # ]
 
-#     # uniform
-#     data_parent_path_list = [
-#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
-#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
-#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
-# ]
-#
-#     data_type_list = [
-#         "uniform_seed_0",
-#         "uniform_seed_1",
-#         "uniform_seed_2",
-#     ]
+    # uniform
+    data_parent_path_list = [
+        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
+        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
+        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
+]
+
+    data_type_list = [
+        "uniform_seed_0",
+        "uniform_seed_1",
+        "uniform_seed_2",
+    ]
 
     # # local optimal
     # data_parent_path_list = [

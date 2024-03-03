@@ -36,6 +36,10 @@ def main():
 
     sample_num = 10
     condition_seed_num = 20
+    #
+    # sample_num = 50
+    # condition_seed_num = 1
+
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
@@ -51,11 +55,11 @@ def main():
 
     data_type_list = [
         f"full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
-        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
-        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
-        f"input_obs_output_time_control_obj_12_data_114k_seed_0",
-        f"input_obs_output_time_control_obj_12_data_114k_seed_1",
-        f"input_obs_output_time_control_obj_12_data_114k_seed_2",
+        # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        # f"input_obs_output_time_control_obj_12_data_114k_seed_0",
+        # f"input_obs_output_time_control_obj_12_data_114k_seed_1",
+        # f"input_obs_output_time_control_obj_12_data_114k_seed_2",
     ]
 
     # Configure path
@@ -72,11 +76,11 @@ def main():
 
     input_obs_output_time_control_parent_path_list = [
         f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
-        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
-        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
-        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_0",
-        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_1",
-        f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
+        # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+        # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_0",
+        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_1",
+        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
     ]
 
     constraint_violation_list = []
@@ -157,8 +161,8 @@ def main():
         # Save ##########################################################################################################
         total_num = sample_num * condition_seed_num
         for num in range(total_num):
-            curr_conditional_seed = 5000 + num // 10
-            curr_initial_guess_seed = num % 10
+            curr_conditional_seed = 5000 + num // sample_num
+            curr_initial_guess_seed = num % sample_num
 
             warmstart_data_parent_path = f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/warmstart_data/car/{data_type}"
             if not os.path.exists(warmstart_data_parent_path):
