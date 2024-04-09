@@ -22,13 +22,30 @@ def evaluate_violation_car():
     #     "cvae_lstm",
     # ]
 
-    # Constrained
-    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/full_data_114k_constraint_weight_0.01_condscale_6"
+    # # Improved constrained
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    # data_type_list = [
+    #     "car_constrained_improved_seed_0",
+    #     "car_constrained_improved_seed_1",
+    #     "car_constrained_improved_seed_2",
+    # ]
+
+    # # Constrained
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/full_data_114k_constraint_weight_0.01_condscale_6"
+    #
+    # data_type_list = [
+    #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+    #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+    #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+    # ]
+    #
+    # TODO: uniform sample from training
+    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
 
     data_type_list = [
-        "full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
-        "full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
-        "full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+        "uniform_from_training_seed_0",
+        "uniform_from_training_seed_1",
+        "uniform_from_training_seed_2",
     ]
 
     # # Diffusion
@@ -60,8 +77,8 @@ def evaluate_violation_car():
 
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
-        # data_path = f"{data_parent_path}/{data_type}/{data_type}_num_{num}.pkl"
-        data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
+        data_path = f"{data_parent_path}/{data_type}/{data_type}_num_{num}.pkl"
+        # data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
 
 
         with open(data_path, 'rb') as f:

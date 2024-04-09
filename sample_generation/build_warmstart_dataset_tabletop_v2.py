@@ -4,9 +4,16 @@ import sys
 import re
 import time
 
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, \
+# TODO： Acoording to the cost function, choose model script,
+#  here is constraint 1/t
+# from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, \
+#     Dataset1D
+# from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2 import get_constraint_violation_tabletop
+
+# TODO: here is improved constraint, sampled average violation
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_improved_tabletop import Unet1D, GaussianDiffusion1D, Trainer1D, \
     Dataset1D
-from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2 import get_constraint_violation_tabletop
+from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import get_constraint_violation_tabletop
 
 import copy
 import numpy as np
@@ -64,16 +71,25 @@ def main():
     #     "input_obs_goal_output_time_control_obj_6_seed_2",
     # ]
 
+    # data_type_list = [
+    #     # "tabletop_v2_diffusion_seed_0",
+    #     # "tabletop_v2_diffusion_seed_1",
+    #     # "tabletop_v2_diffusion_seed_2",
+    #     # "tabletop_v2_constrained_diffusion_seed_0",
+    #     # "tabletop_v2_constrained_diffusion_seed_1",
+    #     # "tabletop_v2_constrained_diffusion_seed_2",
+    #     "tabletop_v2_constrained_diffusion_weight_01_seed_0",
+    #     "tabletop_v2_constrained_diffusion_weight_01_seed_1",
+    #     "tabletop_v2_constrained_diffusion_weight_01_seed_2",
+    # ]
+
     data_type_list = [
-        # "tabletop_v2_diffusion_seed_0",
-        # "tabletop_v2_diffusion_seed_1",
-        # "tabletop_v2_diffusion_seed_2",
-        # "tabletop_v2_constrained_diffusion_seed_0",
-        # "tabletop_v2_constrained_diffusion_seed_1",
-        # "tabletop_v2_constrained_diffusion_seed_2",
-        "tabletop_v2_constrained_diffusion_weight_01_seed_0",
-        "tabletop_v2_constrained_diffusion_weight_01_seed_1",
-        "tabletop_v2_constrained_diffusion_weight_01_seed_2",
+        "tabletop_v2_constrained_improved_weight_01_diffusion_seed_0",
+        "tabletop_v2_constrained_improved_weight_01_diffusion_seed_1",
+        "tabletop_v2_constrained_improved_weight_01_diffusion_seed_2",
+        "tabletop_v2_constrained_improved_weight_10_diffusion_seed_0",
+        "tabletop_v2_constrained_improved_weight_10_diffusion_seed_1",
+        "tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
     ]
     
     # Configure path ##############################################################################################
@@ -88,16 +104,25 @@ def main():
     #     f"{parent_path}/input_obs_goal_output_time_control_obj_6_seed_2",
     # ]
 
+    # input_obs_goal_output_time_control_parent_path_list = [
+    #     # f"{parent_path}/tabletop_v2_diffusion_seed_0",
+    #     # f"{parent_path}/tabletop_v2_diffusion_seed_1",
+    #     # f"{parent_path}/tabletop_v2_diffusion_seed_2",
+    #     # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_0",
+    #     # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_1",
+    #     # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_2",
+    #     f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_0",
+    #     f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_1",
+    #     f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_2",
+    # ]
+
     input_obs_goal_output_time_control_parent_path_list = [
-        # f"{parent_path}/tabletop_v2_diffusion_seed_0",
-        # f"{parent_path}/tabletop_v2_diffusion_seed_1",
-        # f"{parent_path}/tabletop_v2_diffusion_seed_2",
-        # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_0",
-        # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_1",
-        # f"{parent_path}/tabletop_v2_constrained_diffusion_seed_2",
-        f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_0",
-        f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_1",
-        f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_2",
+        f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_0",
+        f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_1",
+        f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_2",
+        f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_0",
+        f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_1",
+        f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
     ]
 
     constraint_violation_list = []

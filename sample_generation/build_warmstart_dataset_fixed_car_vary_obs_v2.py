@@ -4,9 +4,16 @@ import sys
 import re
 import time
 
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, \
+# TODO: select the model script based on the type of constraints,
+#  here is previous 1/t constraint
+# from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, \
+#     Dataset1D
+# from denoising_diffusion_pytorch.constraint_violation_function_car import get_constraint_violation_car
+
+# TODO: here is improved constraint, based on sampled mean
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_improved_car import Unet1D, GaussianDiffusion1D, Trainer1D, \
     Dataset1D
-from denoising_diffusion_pytorch.constraint_violation_function_car import get_constraint_violation_car
+from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
 
 import copy
 import numpy as np
@@ -53,17 +60,25 @@ def main():
     #     # f"input_obs_output_time_control_obj_12_data_114k"
     #                   ]
 
+    # data_type_list = [
+    #     # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+    #     # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+    #     # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+    #     # f"input_obs_output_time_control_obj_12_data_114k_seed_0",
+    #     # f"input_obs_output_time_control_obj_12_data_114k_seed_1",
+    #     # f"input_obs_output_time_control_obj_12_data_114k_seed_2",
+    # ]
+
     data_type_list = [
-        f"full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
-        # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
-        # f"full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
-        # f"input_obs_output_time_control_obj_12_data_114k_seed_0",
-        # f"input_obs_output_time_control_obj_12_data_114k_seed_1",
-        # f"input_obs_output_time_control_obj_12_data_114k_seed_2",
+        f"car_constrained_improved_seed_0",
+        f"car_constrained_improved_seed_1",
+        f"car_constrained_improved_seed_2",
     ]
+
 
     # Configure path
     parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
+
     # input_obs_output_time_control_parent_path_list = [
     #     # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_1",
     #     # f"{parent_path}/full_data_114k_constraint_weight_0.0001_condscale_6",
@@ -74,13 +89,19 @@ def main():
     #     # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k"
     # ]
 
+    # input_obs_output_time_control_parent_path_list = [
+    #     f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
+    #     # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
+    #     # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_0",
+    #     # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_1",
+    #     # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
+    # ]
+
     input_obs_output_time_control_parent_path_list = [
-        f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_0",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_1",
-        # f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
-        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_0",
-        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_1",
-        # f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
+        f"{parent_path}/car_constrained_improved_seed_0",
+        f"{parent_path}/car_constrained_improved_seed_1",
+        f"{parent_path}/car_constrained_improved_seed_2",
     ]
 
     constraint_violation_list = []
