@@ -1,17 +1,17 @@
 import os.path
 import sys
 
+sys.path.append('../../')
 sys.path.append('../')
-sys.path.append('./')
 
 import torch
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_tabletop import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
 from torch.utils.data import TensorDataset
 import pickle
 import numpy as np
 from datetime import datetime
-import random
 
+import random
 import argparse
 
 def main():
@@ -41,6 +41,7 @@ def main():
     max_epoch = args.max_epoch
     constraint_violation_weight = args.constraint_violation_weight
     constraint_condscale = args.constraint_condscale
+
     training_random_seed = args.training_random_seed
     set_seed(seed=training_random_seed)
 
@@ -245,7 +246,7 @@ def parse_args():
                         help="result_folder")
     parser.add_argument('--constraint_violation_weight',
                         type=float,
-                        default=0.01,
+                        default=0.001,
                         help="weight of the constraint violation term")
     parser.add_argument('--constraint_condscale',
                         type=float,

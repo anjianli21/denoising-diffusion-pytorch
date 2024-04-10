@@ -1,6 +1,5 @@
 import os
 import glob
-import sys
 import re
 import time
 
@@ -11,17 +10,13 @@ import time
 # from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2 import get_constraint_violation_tabletop
 
 # TODO: here is improved constraint, sampled average violation
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_improved_tabletop import Unet1D, GaussianDiffusion1D, Trainer1D, \
-    Dataset1D
+from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d_constraint_improved_tabletop import Unet1D, GaussianDiffusion1D, Trainer1D
 from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import get_constraint_violation_tabletop
 
 import copy
 import numpy as np
 import pickle
-import yaml
 import torch
-
-import importlib.util
 
 
 def main():

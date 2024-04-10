@@ -1,8 +1,4 @@
-import os
 import glob
-import sys
-import re
-import time
 
 import sys
 import os
@@ -11,10 +7,7 @@ sys.path.append('/home/anjian/Desktop/project/generative_trajectory_optimization
 
 from models import *
 
-
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, \
-    Dataset1D
-from denoising_diffusion_pytorch.constraint_violation_function_tabletop import get_constraint_violation_tabletop
+from denoising_diffusion_pytorch.previous_method.constraint_violation_function_tabletop import get_constraint_violation_tabletop
 
 
 import copy
@@ -22,8 +15,6 @@ import numpy as np
 import pickle
 import yaml
 import torch
-
-import importlib.util
 
 CVAE_PARENT_DIR = "results/from_autodl/cvae_lstm/tabletop_v2/cvae_seed_2"
 RNN_PARENT_DIR = "results/from_autodl/cvae_lstm/tabletop_v2/lstm_seed_2"

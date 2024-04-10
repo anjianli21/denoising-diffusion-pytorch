@@ -14,7 +14,7 @@ from models import *
 
 from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_car import Unet1D, GaussianDiffusion1D, Trainer1D, \
     Dataset1D
-from denoising_diffusion_pytorch.constraint_violation_function_tabletop import get_constraint_violation_tabletop
+from denoising_diffusion_pytorch.previous_method.constraint_violation_function_tabletop import get_constraint_violation_tabletop
 
 
 import copy

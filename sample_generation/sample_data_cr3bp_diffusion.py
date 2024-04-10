@@ -1,22 +1,14 @@
-import os
-import glob
 import sys
-import re
 import time
 
 sys.path.append('/home/anjian/Desktop/project/generative_trajectory_optimization')
 sys.path.append('/home/anjian/Desktop/project/denoising-diffusion-pytorch')
 from models import *  # TODO, import CVAE models and lstm models, from '/home/anjian/Desktop/project/generative_trajectory_optimization'
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, \
-    Dataset1D
+from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D
 
-import copy
 import numpy as np
 import pickle
-import yaml
 import torch
-
-import importlib.util
 
 MAX_MASS = 438.0  #
 MINIMUM_SHOOTING_TIME = 0.0

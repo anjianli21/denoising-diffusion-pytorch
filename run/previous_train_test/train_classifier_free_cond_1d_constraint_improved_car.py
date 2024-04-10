@@ -5,13 +5,12 @@ sys.path.append('../')
 sys.path.append('./')
 
 import torch
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_improved_tabletop import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
 from torch.utils.data import TensorDataset
 import pickle
 import numpy as np
 from datetime import datetime
-import random
 
+import random
 import argparse
 
 def main():
@@ -41,11 +40,27 @@ def main():
     max_epoch = args.max_epoch
     constraint_violation_weight = args.constraint_violation_weight
     constraint_condscale = args.constraint_condscale
+    max_sample_step_with_constraint_loss = args.max_sample_step_with_constraint_loss
+    constraint_loss_type = str(args.constraint_loss_type)
+    task_type = str(args.task_type)
+
+    if task_type == "car":
+        from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d_constraint_improved_car import Unet1D, \
+            GaussianDiffusion1D, Trainer1D
+    elif task_type == "tabletop":
+        from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d_constraint_improved_tabletop import Unet1D, \
+            GaussianDiffusion1D, Trainer1D
+    else:
+        print("wrong task type")
+        exit()
+
     training_random_seed = args.training_random_seed
     set_seed(seed=training_random_seed)
 
     print(f"constraint_violation_weight {constraint_violation_weight}")
     print(f"constraint_condscale {constraint_condscale}")
+    print(f"max_sample_step_with_constraint_loss {max_sample_step_with_constraint_loss}")
+    print(f"constraint_loss_type {constraint_loss_type}")
 
     ####################################################################################################################
     # Build the model
@@ -68,6 +83,9 @@ def main():
         # objective='pred_noise',
         constraint_violation_weight=constraint_violation_weight,
         constraint_condscale=constraint_condscale,
+        max_sample_step_with_constraint_loss=max_sample_step_with_constraint_loss,
+        constraint_loss_type=constraint_loss_type,
+        task_type=task_type
     ).cuda()
 
     # # Random dataset
@@ -182,7 +200,7 @@ def parse_args():
                         help='Probability of dropping the condition input')
     parser.add_argument('--channel_num',
                         type=int,
-                        default=3,
+                        default=1,
                         help='Channel number of the data')
     parser.add_argument('--mask_val',
                         type=float,
@@ -201,7 +219,7 @@ def parse_args():
                         help='Objectives for the diffusion model')
     parser.add_argument('--seq_length',
                         type=int,
-                        default=20,
+                        default=81,
                         help='length of the data sequence')
 
     # Trainer1D parameters
@@ -221,7 +239,7 @@ def parse_args():
     # Training data parameters
     parser.add_argument('--class_dim',
                         type=int,
-                        default=5,
+                        default=6,
                         help='Dimension of the class variable')
     parser.add_argument('--training_data_type',
                         type=str,
@@ -233,7 +251,7 @@ def parse_args():
                         help="the range of data after normalization")
     parser.add_argument('--training_data_num',
                         type=int,
-                        default=300000,
+                        default=114570,
                         help="number of training data")
     parser.add_argument('--max_epoch',
                         type=int,
@@ -253,8 +271,22 @@ def parse_args():
                         help="weight of the cond scale in constraint violation sampling")
     parser.add_argument('--training_random_seed',
                         type=int,
-                        default=77,
+                        default=0,
                         help='random seed for model training')
+    parser.add_argument('--max_sample_step_with_constraint_loss',
+                        type=int,
+                        default=500,
+                        help="maximum sampling step that has constraint loss")
+    parser.add_argument('--constraint_loss_type',
+                        type=str,
+                        default='one_over_t',
+                        help="type of constraint loss",
+                        choices=["one_over_t", "gt_threshold", "gt_scaled"])
+    parser.add_argument('--task_type',
+                        type=str,
+                        default='car',
+                        help="type of the task",
+                        choices=["car", "tabletop"])
 
     return parser.parse_args()
 

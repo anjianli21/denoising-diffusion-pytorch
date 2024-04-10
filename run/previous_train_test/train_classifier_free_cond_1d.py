@@ -1,11 +1,11 @@
 import os.path
 import sys
 
+sys.path.append('../../')
 sys.path.append('../')
-sys.path.append('./')
 
 import torch
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_constraint_improved_car import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
+from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D
 from torch.utils.data import TensorDataset
 import pickle
 import numpy as np
@@ -39,14 +39,9 @@ def main():
     wandb_project_name = f"{wandb_project_name}_range_{training_data_range}"
     result_folder = str(args.result_folder)
     max_epoch = args.max_epoch
-    constraint_violation_weight = args.constraint_violation_weight
-    constraint_condscale = args.constraint_condscale
-
     training_random_seed = args.training_random_seed
-    set_seed(seed=training_random_seed)
 
-    print(f"constraint_violation_weight {constraint_violation_weight}")
-    print(f"constraint_condscale {constraint_condscale}")
+    set_seed(seed=training_random_seed)
 
     ####################################################################################################################
     # Build the model
@@ -67,8 +62,6 @@ def main():
         timesteps=timesteps,
         objective=objective,
         # objective='pred_noise',
-        constraint_violation_weight=constraint_violation_weight,
-        constraint_condscale=constraint_condscale,
     ).cuda()
 
     # # Random dataset
@@ -115,16 +108,6 @@ def main():
 
     num_workers = 1
     checkpoint_folder = f"{result_folder}/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-
-    # if machine == "ubuntu":
-    #     results_folder = f"results/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-    #     num_workers = 1
-    # elif machine == "autodl-car":
-    #     results_folder = f"/root/autodl-tmp/project/diffusion/fixed_car_vary_obs/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-    #     num_workers = 1
-    # elif machine == "autodl-cr3bp":
-    #     results_folder = f"/root/autodl-tmp/project/diffusion/cr3bp/results/{training_data_type}/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_objective_{objective}_batch_size_{batch_size}_cond_drop_{cond_drop_prob}_mask_val_{mask_val}/{current_time}"
-    #     num_workers = 1
 
     step_per_epoch = int(training_data_num / batch_size)
     # max_epoch = 200  # 200
@@ -244,14 +227,6 @@ def parse_args():
                         type=str,
                         default="checkpoint_result/",
                         help="result_folder")
-    parser.add_argument('--constraint_violation_weight',
-                        type=float,
-                        default=0.001,
-                        help="weight of the constraint violation term")
-    parser.add_argument('--constraint_condscale',
-                        type=float,
-                        default=6.,
-                        help="weight of the cond scale in constraint violation sampling")
     parser.add_argument('--training_random_seed',
                         type=int,
                         default=77,
@@ -270,6 +245,7 @@ def set_seed(seed: int = 42) -> None:
     # Set a fixed value for the hash seed
     os.environ["PYTHONHASHSEED"] = str(seed)
     print(f"Random seed set as {seed}")
+
 
 if __name__ == "__main__":
     main()

@@ -1,8 +1,5 @@
 import torch
-from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D, Dataset1D
-from torch.utils.data import TensorDataset
-import pickle
-import numpy as np
+from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d import Unet1D, GaussianDiffusion1D, Trainer1D
 
 # 1. Initialization
 unet_dim = 128

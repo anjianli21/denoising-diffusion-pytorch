@@ -132,8 +132,8 @@ def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, b
     return state_x, state_y
 
 if __name__ == "__main__":
-    use_local_optimal_data = True
-    # use_local_optimal_data = False
+    # use_local_optimal_data = True
+    use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
     data_num = 2000
@@ -159,7 +159,8 @@ if __name__ == "__main__":
         c = torch.rand(data_num, 14).to(device)
     scale = torch.ones(data_num).to(device)
     violation = get_constraint_violation_tabletop(x, c, scale, device)
-    print(f"total violation is {violation}")
+    violation = torch.mean(violation)
+    print(f"mean total violation is {violation}")
     # print(torch.autograd.grad(violation, x, create_graph=True))
     print(torch.max(torch.autograd.grad(violation, x, create_graph=True)[0]))
     print(torch.min(torch.autograd.grad(violation, x, create_graph=True)[0]))

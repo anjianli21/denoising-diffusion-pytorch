@@ -973,6 +973,7 @@ class GaussianDiffusion1D(nn.Module):
 
         print(f"mse loss {loss.mean()}")
         print(f"violation loss {violation_loss}")
+        print(f"weight violation loss is {coef * violation_loss}")
         return loss.mean() + coef * violation_loss
 
     def forward(self, img, *args, **kwargs):
