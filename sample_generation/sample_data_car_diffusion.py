@@ -10,7 +10,7 @@ import time
 # from denoising_diffusion_pytorch.constraint_violation_function_car import get_constraint_violation_car
 
 # TODO: here is improved constraint, based on sampled mean
-from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d_constraint_improved_car import Unet1D, GaussianDiffusion1D, Trainer1D
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_improved_constrained_diffusion import Unet1D, GaussianDiffusion1D, Trainer1D
 from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
 
 
@@ -50,10 +50,16 @@ def main():
     #     f"input_obs_output_time_control_obj_12_data_114k_seed_2",
     # ]
 
+    # data_type_list = [
+    #     f"car_constrained_improved_seed_0",
+    #     f"car_constrained_improved_seed_1",
+    #     f"car_constrained_improved_seed_2",
+    # ]
+    #
     data_type_list = [
-        f"car_constrained_improved_seed_0",
-        f"car_constrained_improved_seed_1",
-        f"car_constrained_improved_seed_2",
+        "car_constrained_step_10_type_scaled_weight_10_seed_0",
+        "car_constrained_step_10_type_threshold_weight_10_seed_0",
+        "car_constrained_step_500_type_scaled_weight_1_seed_0",
     ]
 
     # Configure path
@@ -73,10 +79,16 @@ def main():
     #     f"{parent_path}/input_obs_output_time_control_obj_12_data_114k_seed_2",
     # ]
 
+    # input_obs_output_time_control_parent_path_list = [
+    #     f"{parent_path}/car_constrained_improved_seed_0",
+    #     f"{parent_path}/car_constrained_improved_seed_1",
+    #     f"{parent_path}/car_constrained_improved_seed_2",
+    # ]
+
     input_obs_output_time_control_parent_path_list = [
-        f"{parent_path}/car_constrained_improved_seed_0",
-        f"{parent_path}/car_constrained_improved_seed_1",
-        f"{parent_path}/car_constrained_improved_seed_2",
+        f"{parent_path}/car_constrained_step_10_type_scaled_weight_10_seed_0",
+        f"{parent_path}/car_constrained_step_10_type_threshold_weight_10_seed_0",
+        f"{parent_path}/car_constrained_step_500_type_scaled_weight_1_seed_0",
     ]
 
     constraint_violation_list = []

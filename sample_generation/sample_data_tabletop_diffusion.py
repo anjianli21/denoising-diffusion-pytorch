@@ -15,7 +15,7 @@ sys.path.append('/home/anjian/Desktop/project/denoising-diffusion-pytorch')
 # from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2 import get_constraint_violation_tabletop
 
 # TODO: here is improved constraint, sampled average violation
-from denoising_diffusion_pytorch.previous_method.classifier_free_guidance_cond_1d_constraint_improved_tabletop import Unet1D, GaussianDiffusion1D, Trainer1D
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_improved_constrained_diffusion import Unet1D, GaussianDiffusion1D, Trainer1D
 from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import get_constraint_violation_tabletop
 
 import copy
@@ -82,13 +82,19 @@ def main():
     #     "tabletop_v2_constrained_diffusion_weight_01_seed_2",
     # ]
     #
+    # data_type_list = [
+    #     "tabletop_v2_constrained_improved_weight_01_diffusion_seed_0",
+    #     "tabletop_v2_constrained_improved_weight_01_diffusion_seed_1",
+    #     "tabletop_v2_constrained_improved_weight_01_diffusion_seed_2",
+    #     "tabletop_v2_constrained_improved_weight_10_diffusion_seed_0",
+    #     "tabletop_v2_constrained_improved_weight_10_diffusion_seed_1",
+    #     "tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
+    # ]
+
     data_type_list = [
-        "tabletop_v2_constrained_improved_weight_01_diffusion_seed_0",
-        "tabletop_v2_constrained_improved_weight_01_diffusion_seed_1",
-        "tabletop_v2_constrained_improved_weight_01_diffusion_seed_2",
-        "tabletop_v2_constrained_improved_weight_10_diffusion_seed_0",
-        "tabletop_v2_constrained_improved_weight_10_diffusion_seed_1",
-        "tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
+        "tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+        "tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+        "tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
     ]
 
     # Configure path ##############################################################################################
@@ -115,13 +121,19 @@ def main():
     #     f"{parent_path}/tabletop_v2_constrained_diffusion_weight_01_seed_2",
     # ]
 
+    # input_obs_goal_output_time_control_parent_path_list = [
+    #     f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_0",
+    #     f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_1",
+    #     f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_2",
+    #     f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_0",
+    #     f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_1",
+    #     f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
+    # ]
+
     input_obs_goal_output_time_control_parent_path_list = [
-        f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_0",
-        f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_1",
-        f"{parent_path}/tabletop_v2_constrained_improved_weight_01_diffusion_seed_2",
-        f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_0",
-        f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_1",
-        f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
+        f"{parent_path}/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+        f"{parent_path}/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+        f"{parent_path}/tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
     ]
 
     constraint_violation_list = []

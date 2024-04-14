@@ -1,11 +1,10 @@
 import numpy as np
 import copy
-from denoising_diffusion_pytorch.constraint_violation_function_car_v2 import get_constraint_violation_car
 import pickle
 import glob
 import os
 import torch
-from denoising_diffusion_pytorch.constraint_violation_function_car_v2 import get_constraint_violation_car
+from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -22,13 +21,13 @@ def evaluate_violation_car():
     #     "cvae_lstm",
     # ]
 
-    # # Improved constrained
-    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
-    # data_type_list = [
-    #     "car_constrained_improved_seed_0",
-    #     "car_constrained_improved_seed_1",
-    #     "car_constrained_improved_seed_2",
-    # ]
+    # # TODO: Improved constrained, threshold
+    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    data_type_list = [
+        # "car_constrained_improved_seed_0",
+        "car_constrained_improved_seed_1",
+        # "car_constrained_improved_seed_2",
+    ]
 
     # # Constrained
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/full_data_114k_constraint_weight_0.01_condscale_6"
@@ -39,14 +38,22 @@ def evaluate_violation_car():
     #     "full_data_114k_constraint_weight_0.01_condscale_6_seed_2",
     # ]
     #
-    # TODO: uniform sample from training
-    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    # # TODO: uniform sample from training
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    #
+    # data_type_list = [
+    #     "uniform_from_training_seed_0",
+    #     "uniform_from_training_seed_1",
+    #     "uniform_from_training_seed_2",
+    # ]
 
-    data_type_list = [
-        "uniform_from_training_seed_0",
-        "uniform_from_training_seed_1",
-        "uniform_from_training_seed_2",
-    ]
+    # TODO: add statistical constraints
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    # data_type_list = [
+    #     "car_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     # "car_constrained_step_10_type_threshold_weight_10_seed_0",
+    #     # "car_constrained_step_500_type_scaled_weight_1_seed_0"
+    # ]
 
     # # Diffusion
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/input_obs_output_time_control_obj_12_data_114k"

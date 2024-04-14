@@ -2,7 +2,7 @@ import pickle
 import glob
 import os
 import torch
-from denoising_diffusion_pytorch.constraint_violation_function_tabletop_setupv2_evaluate import get_constraint_violation_tabletop
+from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import get_constraint_violation_tabletop
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -109,17 +109,30 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_2",
     # ]
 
-    # uniform
+#     # uniform
+#     data_parent_path_list = [
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
+# ]
+#
+#     data_type_list = [
+#         "uniform_seed_0",
+#         "uniform_seed_1",
+#         "uniform_seed_2",
+#     ]
+
+    # TODO: add statistical constraints, tabletop_constrained_step_10_type_scaled_weight_10_seed_0
     data_parent_path_list = [
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
-]
+        # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+        # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
+    ]
 
     data_type_list = [
-        "uniform_seed_0",
-        "uniform_seed_1",
-        "uniform_seed_2",
+        # "tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+        # "tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+        "tabletop_constrained_step_500_type_scaled_weight_1_seed_0"
     ]
 
     # # local optimal

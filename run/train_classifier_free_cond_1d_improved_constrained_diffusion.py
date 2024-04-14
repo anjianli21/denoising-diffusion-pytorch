@@ -55,6 +55,15 @@ def main():
     print(f"max_sample_step_with_constraint_loss {max_sample_step_with_constraint_loss}")
     print(f"constraint_loss_type {constraint_loss_type}")
 
+
+    #####################################################################################################################
+    # Create WANDB folder
+    if os.path.exists("/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb"):
+        if task_type == "car":
+            os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/car/{training_data_type}", exist_ok=True)
+        if task_type == "tabletop":
+            os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/tabletop_v2/{training_data_type}", exist_ok=True)
+
     ####################################################################################################################
     # Build the model
     model = Unet1D(
