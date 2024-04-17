@@ -958,6 +958,8 @@ class GaussianDiffusion1D(nn.Module):
         elif self.task_type == "tabletop":
             from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import \
                 get_constraint_violation_tabletop
+        elif self.task_type == "cr3bp":
+            pass
         else:
             print("wrong task type")
             exit()
@@ -1147,6 +1149,13 @@ class GaussianDiffusion1D(nn.Module):
             print(f"gt_average_violation_loss {gt_average_violation_loss}")
             print(f"gt_var_violation_loss {gt_var_violation_loss}")
             print(f"violation loss {violation_loss}")
+        elif self.constraint_loss_type == "NA":
+            loss = F.mse_loss(model_out, target, reduction='none')
+            loss = reduce(loss, 'b ... -> b (...)', 'mean')
+
+            loss = loss * extract(self.loss_weight, t, loss.shape)
+
+            return loss.mean()
         else:
             print("wrong constraint loss type")
             exit()

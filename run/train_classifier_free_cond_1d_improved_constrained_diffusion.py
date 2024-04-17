@@ -1,8 +1,10 @@
 import os.path
 import sys
-
 sys.path.append('../')
 sys.path.append('./')
+
+from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_improved_constrained_diffusion import Unet1D, \
+    GaussianDiffusion1D, Trainer1D, Dataset1D
 
 import torch
 from torch.utils.data import TensorDataset
@@ -44,16 +46,13 @@ def main():
     constraint_loss_type = str(args.constraint_loss_type)
     task_type = str(args.task_type)
 
-    from denoising_diffusion_pytorch.classifier_free_guidance_cond_1d_improved_constrained_diffusion import Unet1D, \
-        GaussianDiffusion1D, Trainer1D, Dataset1D
-
     training_random_seed = args.training_random_seed
     set_seed(seed=training_random_seed)
 
+    print(f"constraint_loss_type {constraint_loss_type}")
     print(f"constraint_violation_weight {constraint_violation_weight}")
     print(f"constraint_condscale {constraint_condscale}")
     print(f"max_sample_step_with_constraint_loss {max_sample_step_with_constraint_loss}")
-    print(f"constraint_loss_type {constraint_loss_type}")
 
 
     #####################################################################################################################
@@ -63,7 +62,8 @@ def main():
             os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/car/{training_data_type}", exist_ok=True)
         if task_type == "tabletop":
             os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/tabletop_v2/{training_data_type}", exist_ok=True)
-
+    else:
+        os.makedirs(f"wandb/{task_type}/{training_data_type}", exist_ok=True)
     ####################################################################################################################
     # Build the model
     model = Unet1D(
@@ -100,6 +100,7 @@ def main():
     # data_path = "data/CR3BP/cr3bp_time_mass_alpha_control_part_4_250k_each.pkl"
     with open(data_path, "rb") as f:
         data = pickle.load(f)
+
     # set up the data
     x = data[:, class_dim:].astype(np.float32).reshape(data.shape[0], channel_num, seq_length)
     c = data[:, :class_dim].astype(np.float32).reshape(data.shape[0], class_dim)
@@ -281,14 +282,14 @@ def parse_args():
                         help="maximum sampling step that has constraint loss")
     parser.add_argument('--constraint_loss_type',
                         type=str,
-                        default='one_over_t',
+                        default='NA',
                         help="type of constraint loss",
-                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std_score"])
+                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std_score", "NA"])
     parser.add_argument('--task_type',
                         type=str,
                         default='car',
                         help="type of the task",
-                        choices=["car", "tabletop"])
+                        choices=["car", "tabletop", "cr3bp"])
 
     return parser.parse_args()
 
