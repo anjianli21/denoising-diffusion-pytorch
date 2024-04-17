@@ -257,7 +257,7 @@ def parse_args():
                         help="number of training data")
     parser.add_argument('--max_epoch',
                         type=int,
-                        default=200,
+                        default=2,
                         help="number of epochs to train")
     parser.add_argument('--result_folder',
                         type=str,
@@ -283,7 +283,7 @@ def parse_args():
                         type=str,
                         default='one_over_t',
                         help="type of constraint loss",
-                        choices=["one_over_t", "gt_threshold", "gt_scaled"])
+                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std_score"])
     parser.add_argument('--task_type',
                         type=str,
                         default='car',

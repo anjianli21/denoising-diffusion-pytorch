@@ -793,8 +793,6 @@ class GaussianDiffusion1D(nn.Module):
 
         # TODO: the giant sample loop, loop over each time steps, and sample the x_(t-1) at each steps
         for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-            print(t)
-            print(torch.max(img))
             img, x_start = self.p_sample(img, t, classes, cond_scale, rescaled_phi)
 
         img = self.unnormalize(img)
@@ -900,17 +898,16 @@ class GaussianDiffusion1D(nn.Module):
 
         # Concatenate the list of tensors along the last dimension to get the final tensor
         x_ts = torch.cat(x_ts_samples, dim=-1)
-        # breakpoint()
+
         return x_ts
 
     def p_losses(self, x_start, t, *, classes, noise=None):
-        # Sample some random noises
+
         noise = default(noise, lambda: torch.randn_like(x_start))
 
         # noise sample
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
-        # breakpoint()
         # predict and take gradient step
         model_out = self.model(x_t, t, classes)
 
@@ -965,10 +962,11 @@ class GaussianDiffusion1D(nn.Module):
         # TODO: compute constraint violation loss based on loss type
         if self.constraint_loss_type == "one_over_t":
             if self.task_type == "car":
-                # # # If we measure violation loss directly on the training data, it should be 0
+                # # If we measure violation loss directly on the training data, it should be 0
                 # violation_loss_for_training_data = get_constraint_violation_car(self.unnormalize(x_start.view(x_start.shape[0], -1)), classes,
                 #                                               1., x_start.device)
                 # print(f"violation_loss_for_training_data {violation_loss_for_training_data}")
+
                 violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes,
                                                               1. / (t + 1), x_start.device)
             elif self.task_type == "tabletop":
@@ -981,21 +979,15 @@ class GaussianDiffusion1D(nn.Module):
             x_t_1_gt = self.q_sample_many(x_start=x_start, t=t-1, sample_num=100)
 
             batch_size, channel_size, feature_size, sample_size = x_t_1_gt.shape
-            # breakpoint()
 
             # Step 1: Flatten x_t_1_gt for processing while keeping the sample dimension intact
-            reshaped_x_t_1_gt = x_t_1_gt.permute(0, 3, 1, 2).reshape(-1, feature_size)
+            reshaped_x_t_1_gt = x_t_1_gt.permute(0, 3, 1, 2).reshape(-1, channel_size, feature_size)
 
             # Repeat each class label 100 times to match the new batch size
             # resulting from the combination of the original batch size and the number of samples
             expanded_classes = classes.repeat_interleave(100, dim=0)
 
-            # TODO: in reshaped_x_t_1_gt and expanded_classes, the order in the tensor is [tensor1_sample1,
-            #  tensor1_sample2, ..., tensor1_sample100, tensor2_sample1 ...]
-            # breakpoint()
             # Note: Adjust the arguments to get_constraint_violation_car if necessary to match its expected input shape and parameters
-            # Manually normlize reshaped_x_t_1_gt to [0,1]
-            normalized_reshaped_x_t_1_gt = 0
             if self.task_type == "car":
                 violation_losses = get_constraint_violation_car(self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
                                                                 expanded_classes,  # Repeat classes for each sample
@@ -1012,7 +1004,6 @@ class GaussianDiffusion1D(nn.Module):
 
             # Step 3: Reshape the violation_losses back to separate the batch and sample dimensions
             # Assuming violation_losses is a flat tensor of shape [(100 * batch_size)]
-            # breakpoint()
             reshaped_violation_losses = violation_losses.view(-1, 100)
 
             # Step 4: Compute the average violation loss across the 100 samples for each batch item
@@ -1023,21 +1014,19 @@ class GaussianDiffusion1D(nn.Module):
             elif self.task_type == "tabletop":
                 nn_violation_loss = get_constraint_violation_tabletop(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1., x_start.device)
 
-            # breakpoint()
-
             difference = nn_violation_loss - gt_average_violation_loss
             violation_loss = torch.max(difference, torch.zeros_like(difference))
 
-            # x_t_1_gt_signle = self.q_sample(x_start=x_start, t=t-1, noise=noise)
-            # gt_violation_loss_single = get_constraint_violation_car(self.unnormalize(x_t_1_gt_signle.view(x_start.shape[0], -1)), classes,
-            #                                                   1., x_start.device)
-            # print(f"nn_violation_loss, {nn_violation_loss}")
-            # print(f"gt_violation_loss_single, {gt_violation_loss_single}")
-            # print(f"t {t}")
-            # for i in range(nn_violation_loss.shape[0]):
-            #     print(f"t {t[i]}, nn violation loss {nn_violation_loss[i]:.2f}, gt_violation_loss_single {gt_violation_loss_single[i]:.2f}, gt_average_violation_loss {gt_average_violation_loss[i]:.2f}")
-            # print(f"finished")
-            # breakpoint()
+            x_t_1_gt_signle = self.q_sample(x_start=x_start, t=t-1, noise=noise)
+            gt_violation_loss_single = get_constraint_violation_car(self.unnormalize(x_t_1_gt_signle.view(x_start.shape[0], -1)), classes,
+                                                              1., x_start.device)
+            print(f"nn_violation_loss, {nn_violation_loss}")
+            print(f"gt_violation_loss_single, {gt_violation_loss_single}")
+            print(f"t {t}")
+            for i in range(nn_violation_loss.shape[0]):
+                print(f"t {t[i]}, nn violation loss {nn_violation_loss[i]:.2f}, gt_violation_loss_single {gt_violation_loss_single[i]:.2f}, gt_average_violation_loss {gt_average_violation_loss[i]:.2f}")
+            print(f"finished")
+            breakpoint()
 
         elif self.constraint_loss_type == "gt_scaled":
             # Compute the violation losses for all samples in parallel
@@ -1158,10 +1147,10 @@ class GaussianDiffusion1D(nn.Module):
         mask = mask.float()
         # Apply the mask to the violation_loss
         masked_violation_loss = violation_loss * mask
-        # print(f"t {t}")
-        # print(f"violation loss {violation_loss}")
-        # print(f"mask {mask}")
-        # print(f"masked_violation_loss {masked_violation_loss}")
+        print(f"t {t}")
+        print(f"violation loss {violation_loss}")
+        print(f"mask {mask}")
+        print(f"masked_violation_loss {masked_violation_loss}")
         violation_loss = torch.mean(masked_violation_loss)
 
         coef = torch.tensor(self.constraint_violation_weight)
@@ -1173,9 +1162,9 @@ class GaussianDiffusion1D(nn.Module):
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
 
-        # print(f"mse loss {loss.mean()}")
-        # print(f"violation loss {violation_loss}")
-        # print(f"weight violation loss is {coef * violation_loss}")
+        print(f"mse loss {loss.mean()}")
+        print(f"violation loss {violation_loss}")
+        print(f"weight violation loss is {coef * violation_loss}")
         return loss.mean() + coef * violation_loss
 
     def forward(self, img, *args, **kwargs):
