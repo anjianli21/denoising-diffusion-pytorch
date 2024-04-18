@@ -947,19 +947,21 @@ class GaussianDiffusion1D(nn.Module):
 
         # TODO: we can pre-normalize x_t_1 by its analytical mean and sigma
         # Compute the analytical mean and sigma for x_t_1, according to the q_sample
-        x_t_1_analytical_mean = extract(self.sqrt_alphas_cumprod, t - 1, x_start.shape) * x_start
-        x_t_1_analytical_sigma = extract(self.sqrt_one_minus_alphas_cumprod, t - 1, x_start.shape)
+        safe_t_1 = torch.where((t - 1) == -1, torch.zeros_like(t), t - 1)
+        x_t_1_analytical_mean = extract(self.sqrt_alphas_cumprod, safe_t_1, x_start.shape) * x_start
+        x_t_1_analytical_sigma = extract(self.sqrt_one_minus_alphas_cumprod, safe_t_1, x_start.shape)
 
         # Compute lower and upper bound with 3-sigma rule, should contain 99.7% data
         x_t_1_analytical_lower_bound = x_t_1_analytical_mean - 3 * x_t_1_analytical_sigma
         x_t_1_analytical_upper_bound = x_t_1_analytical_mean + 3 * x_t_1_analytical_sigma
+
         if self.normalize_xt_by_mean_sigma == "True":
             x_t_1 = (x_t_1 - x_t_1_analytical_lower_bound) / (
                         x_t_1_analytical_upper_bound - x_t_1_analytical_lower_bound)
+            x_t_1 = torch.clamp(x_t_1, min=0.0, max=1.0)
         else:
-            pass
-        # TODO: already normalize to [0, 1]
-        x_t_1 = torch.clamp(x_t_1, min=0.0, max=1.0)
+            x_t_1 = torch.clamp(x_t_1, min=-1.0, max=1.0)
+            x_t_1 = (x_t_1 + 1.0) / 2.0
         #########################################################################################################
         # TODO: choose constraint function
         if self.task_type == "car":
@@ -987,14 +989,14 @@ class GaussianDiffusion1D(nn.Module):
 
             return loss.mean()
         elif self.constraint_loss_type == "one_over_t":
-
-            nn_violation_loss = get_constraint_function(x_t_1,
+            nn_violation_loss = get_constraint_function(x_t_1.view(x_start.shape[0], -1),
                                                         classes,  # Repeat classes for each sample
                                                         1. / (t + 1),
                                                         # Assuming a constant 't' value of 1 for all
                                                         x_start.device)
 
             violation_loss_final_use = nn_violation_loss
+
         else:
 
             #########################################################################################################3
@@ -1011,10 +1013,10 @@ class GaussianDiffusion1D(nn.Module):
                                                                                          self.constraint_gt_sample_num)
 
                 x_t_1_gt = (x_t_1_gt - expanded_lower_bound) / (expanded_upper_bound - expanded_lower_bound)
+                x_t_1_gt = torch.clamp(x_t_1_gt, min=0.0, max=1.0)
             else:
-                pass
-            # TODO: already normalize to [0, 1]
-            x_t_1_gt = torch.clamp(x_t_1_gt, min=0.0, max=1.0)
+                x_t_1_gt = torch.clamp(x_t_1_gt, min=-1.0, max=1.0)
+                x_t_1_gt = (x_t_1_gt + 1.0) / 2.0
 
             batch_size, channel_size, feature_size, sample_size = x_t_1_gt.shape
 
@@ -1042,9 +1044,9 @@ class GaussianDiffusion1D(nn.Module):
             # Step 4: Compute the average violation loss across the 100 samples for each batch item
             gt_average_violation_loss = reshaped_violation_losses.mean(dim=1)
             # Compute the std along dim=1
-            gt_var_std_loss = reshaped_violation_losses.std(dim=1)
+            gt_std_loss = reshaped_violation_losses.std(dim=1)
 
-            nn_violation_loss = get_constraint_function(x_t_1,
+            nn_violation_loss = get_constraint_function(x_t_1.view(x_start.shape[0], -1),
                                                        classes,  # Repeat classes for each sample
                                                        1.,
                                                        # Assuming a constant 't' value of 1 for all
@@ -1061,9 +1063,18 @@ class GaussianDiffusion1D(nn.Module):
 
                 violation_loss_final_use = nn_violation_loss / gt_average_violation_loss
 
-            elif self.constraint_loss_type == "gt_std_score":
+            elif self.constraint_loss_type == "gt_std":
 
-                violation_loss_final_use = (nn_violation_loss - gt_average_violation_loss) / gt_var_std_loss
+                violation_loss_final_use = (nn_violation_loss - gt_average_violation_loss) / gt_std_loss
+
+            elif self.constraint_loss_type == "gt_std_absolute":
+
+                violation_loss_final_use = torch.abs(nn_violation_loss - gt_average_violation_loss) / gt_std_loss
+
+            elif self.constraint_loss_type == "gt_std_threshold":
+
+                difference = nn_violation_loss - gt_average_violation_loss
+                violation_loss_final_use = torch.max(difference, torch.zeros_like(difference)) / gt_std_loss
 
             else:
                 print("wrong constraint_loss_type")
@@ -1078,7 +1089,7 @@ class GaussianDiffusion1D(nn.Module):
         # Apply the mask to the violation_loss_final_use
         masked_violation_loss = violation_loss_final_use * mask
 
-        violation_loss_final_use = torch.mean(masked_violation_loss)
+        violation_loss_final_use_mean = torch.mean(masked_violation_loss)
 
         coef = torch.tensor(self.constraint_violation_weight)
 
@@ -1088,8 +1099,8 @@ class GaussianDiffusion1D(nn.Module):
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
-
-        return loss.mean() + coef * violation_loss_final_use
+        # print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
+        return loss.mean() + coef * violation_loss_final_use_mean
 
     def forward(self, img, *args, **kwargs):
         b, c, n, device, seq_length, = *img.shape, img.device, self.seq_length
@@ -1126,6 +1137,7 @@ class Trainer1D(object):
             wandb_project_name="diffusion_for_cr3bp_test",
             training_data_range="0_1",
             training_data_num=300000,
+            training_random_seed=0
     ):
         super().__init__()
 
@@ -1147,20 +1159,28 @@ class Trainer1D(object):
             'cond_drop_prob': diffusion_model.model.cond_drop_prob,
             'mask_val': diffusion_model.model.mask_val,
             'training_data_range': training_data_range,
-            'training_data_num': training_data_num
+            'training_data_num': training_data_num,
+            'task_type': diffusion_model.task_type,
+            'constraint_loss_type': diffusion_model.constraint_loss_type,
+            'constraint_gt_sample_num': diffusion_model.constraint_gt_sample_num,
+            'normalize_xt_by_mean_sigma': diffusion_model.normalize_xt_by_mean_sigma,
+            'constraint_violation_weight': diffusion_model.constraint_violation_weight,
+            'training_random_seed': training_random_seed
         }
 
         # Generate a unique name for the run
-        run_name = f"unet_dim: {hyperparameters['unet_dim']}, unet_mults: ({','.join(map(str, hyperparameters['unet_dim_mults']))}), " \
-                   f"embed_class_layer: ({','.join(map(str, hyperparameters['embed_class_layers_dims']))}), " \
-                   f"steps: {hyperparameters['timesteps']}, obj: {hyperparameters['objective']}, " \
-                   f"cond_drop_prob: {hyperparameters['cond_drop_prob']}, " \
-                   f"batch_size: {hyperparameters['batch_size']}, mask_val: {hyperparameters['mask_val']}, " \
-                   f"data_range: {hyperparameters['training_data_range']}, " \
-                   f"data_num: {hyperparameters['training_data_num']}"
+        # run_name = f"unet_dim: {hyperparameters['unet_dim']}, unet_mults: ({','.join(map(str, hyperparameters['unet_dim_mults']))}), " \
+        #            f"embed_class_layer: ({','.join(map(str, hyperparameters['embed_class_layers_dims']))}), " \
+        #            f"steps: {hyperparameters['timesteps']}, obj: {hyperparameters['objective']}, " \
+        #            f"cond_drop_prob: {hyperparameters['cond_drop_prob']}, " \
+        #            f"batch_size: {hyperparameters['batch_size']}, mask_val: {hyperparameters['mask_val']}, " \
+        #            f"data_range: {hyperparameters['training_data_range']}, " \
+        #            f"data_num: {hyperparameters['training_data_num']}"
+        run_name = f"task_type: {hyperparameters['task_type']}, constraint_loss_type: {hyperparameters['constraint_loss_type']}, " \
+                   f"constraint_violation_weight: {hyperparameters['constraint_violation_weight']}, " \
+                   f"training_random_seed: {hyperparameters['training_random_seed']}"
 
         wandb.init(project=wandb_project_name, name=run_name, config=hyperparameters)
-
         ############################################################################################
         # Configure the trainer
         # accelerator

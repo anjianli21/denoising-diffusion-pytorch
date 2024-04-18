@@ -37,7 +37,6 @@ def main():
     training_data_range = str(args.training_data_range)
     training_data_num = args.training_data_num
     wandb_project_name = str(args.wandb_project_name)
-    wandb_project_name = f"{wandb_project_name}_range_{training_data_range}"
     result_folder = str(args.result_folder)
     max_epoch = args.max_epoch
     constraint_violation_weight = args.constraint_violation_weight
@@ -52,10 +51,8 @@ def main():
     set_seed(seed=training_random_seed)
 
     print(f"constraint_loss_type {constraint_loss_type}")
+    print(f"normalize_xt_by_mean_sigma {normalize_xt_by_mean_sigma}")
     print(f"constraint_violation_weight {constraint_violation_weight}")
-    print(f"constraint_condscale {constraint_condscale}")
-    print(f"max_sample_step_with_constraint_loss {max_sample_step_with_constraint_loss}")
-
 
     #####################################################################################################################
     # Create WANDB folder
@@ -166,7 +163,8 @@ def main():
         num_workers=num_workers,
         wandb_project_name=wandb_project_name,
         training_data_range=training_data_range,
-        training_data_num=training_data_num
+        training_data_num=training_data_num,
+        training_random_seed=training_random_seed,
     )
     trainer.train()
 
@@ -288,7 +286,7 @@ def parse_args():
                         type=str,
                         default='NA',
                         help="type of constraint loss",
-                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std_score", "NA"])
+                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std", "gt_std_absolute", "gt_std_threshold", "NA"])
     parser.add_argument('--task_type',
                         type=str,
                         default='car',
