@@ -128,11 +128,13 @@ def Upsample(dim, dim_out=None, scale_factor=2):  # TODO: upsample and downsampl
         nn.Conv1d(dim, default(dim_out, dim), 3, padding=1)
     )
 
+
 def Final_upsample_to_target_length(dim_out, dim_in, target_length):
     return nn.Sequential(
         nn.Upsample(size=target_length, mode='nearest'),
         nn.Conv1d(dim_out, dim_in, 3, padding=1)
     )
+
 
 def Downsample(dim, dim_out=None, kernel=4):
     return nn.Conv1d(dim, default(dim_out, dim), kernel, 2, 1)
@@ -303,6 +305,7 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b (h d) n')
         return self.to_out(out)
 
+
 # model
 class Unet1D(nn.Module):
     def __init__(
@@ -429,7 +432,8 @@ class Unet1D(nn.Module):
                     # TODO: since the original data size not necessarily can be divided by two,
                     #  so if is the second last year of upsample, we need make sure it upsamples to the original size
                     # Upsample(dim_out, dim_in) if not is_last else nn.Conv1d(dim_out, dim_in, 3, padding=1),
-                    Final_upsample_to_target_length(dim_out, dim_in, target_length=self.seq_length) if is_second_last else
+                    Final_upsample_to_target_length(dim_out, dim_in,
+                                                    target_length=self.seq_length) if is_second_last else
                     (nn.Conv1d(dim_out, dim_in, 3, padding=1) if is_last else
                      Upsample(dim_out, dim_in))
 
@@ -447,7 +451,8 @@ class Unet1D(nn.Module):
         default_out_dim = channels * (1 if not learned_variance else 2)
         self.out_dim = default(out_dim, default_out_dim)
 
-        self.final_res_block = block_klass(self.dim * 2, self.dim, time_emb_dim=time_dim, classes_emb_dim=embedded_classes_dim)
+        self.final_res_block = block_klass(self.dim * 2, self.dim, time_emb_dim=time_dim,
+                                           classes_emb_dim=embedded_classes_dim)
         self.final_conv = nn.Conv1d(self.dim, self.out_dim, 1)
 
     def build_classes_mlp(self, class_dim, embed_class_layers_dims):
@@ -606,6 +611,8 @@ class GaussianDiffusion1D(nn.Module):
             max_sample_step_with_constraint_loss=500,
             constraint_loss_type="one_over_t",
             task_type="car",
+            constraint_gt_sample_num=1,
+            normalize_xt_by_mean_sigma="False",
     ):
         super().__init__()
         self.model = model
@@ -618,6 +625,8 @@ class GaussianDiffusion1D(nn.Module):
         self.max_sample_step_with_constraint_loss = max_sample_step_with_constraint_loss
         self.constraint_loss_type = constraint_loss_type
         self.task_type = task_type
+        self.constraint_gt_sample_num = constraint_gt_sample_num
+        self.normalize_xt_by_mean_sigma = normalize_xt_by_mean_sigma
 
         assert objective in {'pred_noise', 'pred_x0',
                              'pred_v'}, 'objective must be either pred_noise (predict noise) or pred_x0 (predict image start) or pred_v (predict v [v-parameterization as defined in appendix D of progressive distillation paper, used in imagen-video successfully])'
@@ -886,21 +895,21 @@ class GaussianDiffusion1D(nn.Module):
 
         # Initialize a list to collect sampled tensors
         x_ts_samples = []
-
         for i in range(sample_num):  # Iterate over the sample_num noise samples
-            # Extract the ith noise sample for each batch item
+            # This is the first noise sample for every tensor in the batch
             noise_i = noise[:, :, :, i]
             # Perform the sampling operation using the original function logic
             x_t_i = (
                     extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
                     extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise_i
             )
-            # Append the result to the list
+            # Append the result to the list,
+            # this list will finally length of sample size, the list is
+            # [(batch_size, channel_size, feature_size), ..., (batch_size, channel_size, feature_size)]
             x_ts_samples.append(x_t_i.unsqueeze(-1))  # Use unsqueeze to add the sample_num dimension
 
         # Concatenate the list of tensors along the last dimension to get the final tensor
         x_ts = torch.cat(x_ts_samples, dim=-1)
-        # breakpoint()
         return x_ts
 
     def p_losses(self, x_start, t, *, classes, noise=None):
@@ -930,248 +939,146 @@ class GaussianDiffusion1D(nn.Module):
             print("don't use ddim sampling!")
             exit()
 
-            t_next = t-1
-            alpha = self.alphas_cumprod[t]
-            alpha_next = self.alphas_cumprod[t_next]
-
-            eta = 1. # TODO
-            sigma = eta * ((1 - alpha / alpha_next) * (1 - alpha_next) / (1 - alpha)).sqrt()
-            c = (1 - alpha_next - sigma ** 2).sqrt()
-
-            noise = torch.randn_like(x_start)
-
-            # x(t-1) = x(t) + epsilon
-            x_t_1 = x_start * alpha_next.sqrt() + \
-                    c * model_out + \
-                    sigma * noise
-
         else:
             # TODO: to sample x_t_1, we use classifier-free guidance
-            cond_scale=self.constraint_condscale
-            rescaled_phi=0.7
+            cond_scale = self.constraint_condscale
+            rescaled_phi = 0.7
             x_t_1, _ = self.p_sample(x_t, t, classes, cond_scale, rescaled_phi)
 
+        # TODO: we can pre-normalize x_t_1 by its analytical mean and sigma
+        # Compute the analytical mean and sigma for x_t_1, according to the q_sample
+        x_t_1_analytical_mean = extract(self.sqrt_alphas_cumprod, t - 1, x_start.shape) * x_start
+        x_t_1_analytical_sigma = extract(self.sqrt_one_minus_alphas_cumprod, t - 1, x_start.shape)
+
+        # Compute lower and upper bound with 3-sigma rule, should contain 99.7% data
+        x_t_1_analytical_lower_bound = x_t_1_analytical_mean - 3 * x_t_1_analytical_sigma
+        x_t_1_analytical_upper_bound = x_t_1_analytical_mean + 3 * x_t_1_analytical_sigma
+        if self.normalize_xt_by_mean_sigma == "True":
+            x_t_1 = (x_t_1 - x_t_1_analytical_lower_bound) / (
+                        x_t_1_analytical_upper_bound - x_t_1_analytical_lower_bound)
+        else:
+            pass
+        # TODO: already normalize to [0, 1]
+        x_t_1 = torch.clamp(x_t_1, min=0.0, max=1.0)
         #########################################################################################################
         # TODO: choose constraint function
         if self.task_type == "car":
-            from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
+            # from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
+            from denoising_diffusion_pytorch.constraint_violation_function_improved_car import \
+                get_constraint_violation_car
+            get_constraint_function = get_constraint_violation_car
         elif self.task_type == "tabletop":
             from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import \
                 get_constraint_violation_tabletop
+            get_constraint_function = get_constraint_violation_tabletop
         elif self.task_type == "cr3bp":
             pass
         else:
             print("wrong task type")
             exit()
 
+        ###############################################################################################################
         # TODO: compute constraint violation loss based on loss type
-        if self.constraint_loss_type == "one_over_t":
-            if self.task_type == "car":
-                # # # If we measure violation loss directly on the training data, it should be 0
-                # violation_loss_for_training_data = get_constraint_violation_car(self.unnormalize(x_start.view(x_start.shape[0], -1)), classes,
-                #                                               1., x_start.device)
-                # print(f"violation_loss_for_training_data {violation_loss_for_training_data}")
-                violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes,
-                                                              1. / (t + 1), x_start.device)
-            elif self.task_type == "tabletop":
-                violation_loss = get_constraint_violation_tabletop(self.unnormalize(x_t_1.view(x_start.shape[0], -1)),
-                                                              classes,
-                                                              1. / (t + 1), x_start.device)
-        elif self.constraint_loss_type == "gt_threshold":
-            # Compute the violation losses for all samples in parallel
-            # Should use q_sample to sample x_t_1 for 100 times, and compute the average constraint violation
-            x_t_1_gt = self.q_sample_many(x_start=x_start, t=t-1, sample_num=100)
-
-            batch_size, channel_size, feature_size, sample_size = x_t_1_gt.shape
-            # breakpoint()
-
-            # Step 1: Flatten x_t_1_gt for processing while keeping the sample dimension intact
-            reshaped_x_t_1_gt = x_t_1_gt.permute(0, 3, 1, 2).reshape(-1, feature_size)
-
-            # Repeat each class label 100 times to match the new batch size
-            # resulting from the combination of the original batch size and the number of samples
-            expanded_classes = classes.repeat_interleave(100, dim=0)
-
-            # TODO: in reshaped_x_t_1_gt and expanded_classes, the order in the tensor is [tensor1_sample1,
-            #  tensor1_sample2, ..., tensor1_sample100, tensor2_sample1 ...]
-            # breakpoint()
-            # Note: Adjust the arguments to get_constraint_violation_car if necessary to match its expected input shape and parameters
-            # Manually normlize reshaped_x_t_1_gt to [0,1]
-            normalized_reshaped_x_t_1_gt = 0
-            if self.task_type == "car":
-                violation_losses = get_constraint_violation_car(self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
-                                                                expanded_classes,  # Repeat classes for each sample
-                                                                1.,
-                                                                # Assuming a constant 't' value of 1 for all
-                                                                x_start.device)
-            elif self.task_type == "tabletop":
-                violation_losses = get_constraint_violation_tabletop(
-                    self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
-                    expanded_classes,  # Repeat classes for each sample
-                    1.,
-                    # Assuming a constant 't' value of 1 for all
-                    x_start.device)
-
-            # Step 3: Reshape the violation_losses back to separate the batch and sample dimensions
-            # Assuming violation_losses is a flat tensor of shape [(100 * batch_size)]
-            # breakpoint()
-            reshaped_violation_losses = violation_losses.view(-1, 100)
-
-            # Step 4: Compute the average violation loss across the 100 samples for each batch item
-            gt_average_violation_loss = reshaped_violation_losses.mean(dim=1)
-
-            if self.task_type == "car":
-                nn_violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1., x_start.device)
-            elif self.task_type == "tabletop":
-                nn_violation_loss = get_constraint_violation_tabletop(self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1., x_start.device)
-
-            # breakpoint()
-
-            difference = nn_violation_loss - gt_average_violation_loss
-            violation_loss = torch.max(difference, torch.zeros_like(difference))
-
-            # x_t_1_gt_signle = self.q_sample(x_start=x_start, t=t-1, noise=noise)
-            # gt_violation_loss_single = get_constraint_violation_car(self.unnormalize(x_t_1_gt_signle.view(x_start.shape[0], -1)), classes,
-            #                                                   1., x_start.device)
-            # print(f"nn_violation_loss, {nn_violation_loss}")
-            # print(f"gt_violation_loss_single, {gt_violation_loss_single}")
-            # print(f"t {t}")
-            # for i in range(nn_violation_loss.shape[0]):
-            #     print(f"t {t[i]}, nn violation loss {nn_violation_loss[i]:.2f}, gt_violation_loss_single {gt_violation_loss_single[i]:.2f}, gt_average_violation_loss {gt_average_violation_loss[i]:.2f}")
-            # print(f"finished")
-            # breakpoint()
-
-        elif self.constraint_loss_type == "gt_scaled":
-            # Compute the violation losses for all samples in parallel
-            # Should use q_sample to sample x_t_1 for 100 times, and compute the average constraint violation
-            x_t_1_gt = self.q_sample_many(x_start=x_start, t=t - 1, sample_num=100)
-
-            batch_size, channel_size, feature_size, sample_size = x_t_1_gt.shape
-
-            # Step 1: Flatten x_t_1_gt for processing while keeping the sample dimension intact
-            reshaped_x_t_1_gt = x_t_1_gt.permute(0, 3, 1, 2).reshape(-1, channel_size, feature_size)
-
-            # Repeat each class label 100 times to match the new batch size
-            # resulting from the combination of the original batch size and the number of samples
-            expanded_classes = classes.repeat_interleave(100, dim=0)
-
-            # Note: Adjust the arguments to get_constraint_violation_car if necessary to match its expected input shape and parameters
-            if self.task_type == "car":
-                violation_losses = get_constraint_violation_car(
-                    self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
-                    expanded_classes,  # Repeat classes for each sample
-                    1.,
-                    # Assuming a constant 't' value of 1 for all
-                    x_start.device)
-            elif self.task_type == "tabletop":
-                violation_losses = get_constraint_violation_tabletop(
-                    self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
-                    expanded_classes,  # Repeat classes for each sample
-                    1.,
-                    # Assuming a constant 't' value of 1 for all
-                    x_start.device)
-
-            # Step 3: Reshape the violation_losses back to separate the batch and sample dimensions
-            # Assuming violation_losses is a flat tensor of shape [(100 * batch_size)]
-            reshaped_violation_losses = violation_losses.view(-1, 100)
-
-            # Step 4: Compute the average violation loss across the 100 samples for each batch item
-            gt_average_violation_loss = reshaped_violation_losses.mean(dim=1)
-
-            if self.task_type == "car":
-                nn_violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)),
-                                                                 classes, 1., x_start.device)
-            elif self.task_type == "tabletop":
-                nn_violation_loss = get_constraint_violation_tabletop(
-                    self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1., x_start.device)
-
-            violation_loss = nn_violation_loss / gt_average_violation_loss
-            # print(f"gt_average_violation_loss {gt_average_violation_loss}")
-            # print(f"nn_violation_loss {nn_violation_loss}")
-            # print(f"violation loss {violation_losses}")
-        elif self.constraint_loss_type == "gt_std_score":
-            # Compute the violation losses for all samples in parallel
-            # Should use q_sample to sample x_t_1 for 100 times, and compute the average constraint violation
-            x_t_1_gt = self.q_sample_many(x_start=x_start, t=t - 1, sample_num=100)
-
-            batch_size, channel_size, feature_size, sample_size = x_t_1_gt.shape
-
-            # Step 1: Flatten x_t_1_gt for processing while keeping the sample dimension intact
-            reshaped_x_t_1_gt = x_t_1_gt.permute(0, 3, 1, 2).reshape(-1, channel_size, feature_size)
-
-            # Repeat each class label 100 times to match the new batch size
-            # resulting from the combination of the original batch size and the number of samples
-            expanded_classes = classes.repeat_interleave(100, dim=0)
-
-            # Note: Adjust the arguments to get_constraint_violation_car if necessary to match its expected input shape and parameters
-            if self.task_type == "car":
-                violation_losses = get_constraint_violation_car(
-                    self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
-                    expanded_classes,  # Repeat classes for each sample
-                    1.,
-                    # Assuming a constant 't' value of 1 for all
-                    x_start.device)
-            elif self.task_type == "tabletop":
-                violation_losses = get_constraint_violation_tabletop(
-                    self.unnormalize(reshaped_x_t_1_gt.view(reshaped_x_t_1_gt.shape[0], -1)),
-                    expanded_classes,  # Repeat classes for each sample
-                    1.,
-                    # Assuming a constant 't' value of 1 for all
-                    x_start.device)
-
-            # Step 3: Reshape the violation_losses back to separate the batch and sample dimensions
-            # Assuming violation_losses is a flat tensor of shape [(100 * batch_size)]
-            reshaped_violation_losses = violation_losses.view(-1, 100)
-
-            # Step 4: Compute the average violation loss across the 100 samples for each batch item
-            gt_average_violation_loss = reshaped_violation_losses.mean(dim=1)
-            # Compute the variance along dim=1
-            gt_var_violation_loss = reshaped_violation_losses.var(dim=1)
-            # print(f"gt mean {gt_average_violation_loss}")
-            # print(f"gt_var {gt_var_violation_loss}")
-
-            if self.task_type == "car":
-                nn_violation_loss = get_constraint_violation_car(self.unnormalize(x_t_1.view(x_start.shape[0], -1)),
-                                                                 classes, 1., x_start.device)
-            elif self.task_type == "tabletop":
-                nn_violation_loss = get_constraint_violation_tabletop(
-                    self.unnormalize(x_t_1.view(x_start.shape[0], -1)), classes, 1., x_start.device)
-            else:
-                print("wrong task type")
-                exit()
-            # print(f"nn_violation_loss shape {nn_violation_loss.shape}")
-            # print(f"gt_average_violation_loss shape {gt_average_violation_loss.shape}")
-            # print(f"gt_var_violation_loss shape {gt_var_violation_loss.shape}")
-
-            # Compute violation loss as the standard score, (x - gt_mu) / gt_var
-            violation_loss = (nn_violation_loss - gt_average_violation_loss) / gt_var_violation_loss
-            print(f"nn_violation_loss {nn_violation_loss}")
-            print(f"gt_average_violation_loss {gt_average_violation_loss}")
-            print(f"gt_var_violation_loss {gt_var_violation_loss}")
-            print(f"violation loss {violation_loss}")
-        elif self.constraint_loss_type == "NA":
+        if self.constraint_loss_type == "NA":
             loss = F.mse_loss(model_out, target, reduction='none')
             loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
             loss = loss * extract(self.loss_weight, t, loss.shape)
 
             return loss.mean()
+        elif self.constraint_loss_type == "one_over_t":
+
+            nn_violation_loss = get_constraint_function(x_t_1,
+                                                        classes,  # Repeat classes for each sample
+                                                        1. / (t + 1),
+                                                        # Assuming a constant 't' value of 1 for all
+                                                        x_start.device)
+
+            violation_loss_final_use = nn_violation_loss
         else:
-            print("wrong constraint loss type")
-            exit()
+
+            #########################################################################################################3
+            # Compute nn_violation_loss, and gt constraint loss here
+            # Should use q_sample to sample x_t_1 for 100 times, and compute the average constraint violation
+            # TODO: examined, x_t_1_gt has size of (batch_size, channel_size, feature_size, sample_size)
+            x_t_1_gt = self.q_sample_many(x_start=x_start, t=t - 1, sample_num=self.constraint_gt_sample_num)
+
+            # TODO: clip the x_t_1_gt from q_sample
+            if self.normalize_xt_by_mean_sigma == "True":
+                expanded_lower_bound = x_t_1_analytical_lower_bound.unsqueeze(-1).expand(-1, -1, -1,
+                                                                                         self.constraint_gt_sample_num)
+                expanded_upper_bound = x_t_1_analytical_upper_bound.unsqueeze(-1).expand(-1, -1, -1,
+                                                                                         self.constraint_gt_sample_num)
+
+                x_t_1_gt = (x_t_1_gt - expanded_lower_bound) / (expanded_upper_bound - expanded_lower_bound)
+            else:
+                pass
+            # TODO: already normalize to [0, 1]
+            x_t_1_gt = torch.clamp(x_t_1_gt, min=0.0, max=1.0)
+
+            batch_size, channel_size, feature_size, sample_size = x_t_1_gt.shape
+
+            # reshape x_t_1_gt as (batch_size, sample_size, channel_size, feature_size)
+            # TODO: checked, Then merge batch_size and sample_size, so the row order would be batch 1, sample 1-100, then batch 2 ...
+            reshaped_x_t_1_gt = x_t_1_gt.permute(0, 3, 1, 2).reshape(-1, feature_size)
+
+            # Repeat each class label 100 times to match the new batch size
+            # resulting from the combination of the original batch size and the number of samples
+            # TODO: checked, the new classes would be [batch_1, batch_1, ..., batch_1, batch_2, ... ]
+            expanded_classes = classes.repeat_interleave(self.constraint_gt_sample_num, dim=0)
+
+            # Note: Adjust the arguments to get_constraint_violation_car if necessary to match its expected input shape and parameters
+            # Manually normlize reshaped_x_t_1_gt to [0,1]
+            violation_losses = get_constraint_function(reshaped_x_t_1_gt,
+                                                       expanded_classes,  # Repeat classes for each sample
+                                                       1.,
+                                                       # Assuming a constant 't' value of 1 for all
+                                                       x_start.device)
+
+            # Step 3: Reshape the violation_losses back to separate the batch and sample dimensions
+            # # TODO: Checked, reshaped_violation_losses is [batch_1 sample_1 loss, batch_1 sample_2 loss,....., batch_2 sample_1 loss, ]
+            reshaped_violation_losses = violation_losses.view(-1, self.constraint_gt_sample_num)
+
+            # Step 4: Compute the average violation loss across the 100 samples for each batch item
+            gt_average_violation_loss = reshaped_violation_losses.mean(dim=1)
+            # Compute the std along dim=1
+            gt_var_std_loss = reshaped_violation_losses.std(dim=1)
+
+            nn_violation_loss = get_constraint_function(x_t_1,
+                                                       classes,  # Repeat classes for each sample
+                                                       1.,
+                                                       # Assuming a constant 't' value of 1 for all
+                                                       x_start.device)
+
+            ##########################################################################################################
+            # Customize violation_loss_final_use for each constraint_loss_type
+            if self.constraint_loss_type == "gt_threshold":
+
+                difference = nn_violation_loss - gt_average_violation_loss
+                violation_loss_final_use = torch.max(difference, torch.zeros_like(difference))
+
+            elif self.constraint_loss_type == "gt_scaled":
+
+                violation_loss_final_use = nn_violation_loss / gt_average_violation_loss
+
+            elif self.constraint_loss_type == "gt_std_score":
+
+                violation_loss_final_use = (nn_violation_loss - gt_average_violation_loss) / gt_var_std_loss
+
+            else:
+                print("wrong constraint_loss_type")
+                exit()
+
         ######################################################################3
         # TODO: Specify the sampling step that has contraint violation loss
         # Create a mask where condition (t <= max_sample_step_with_constraint_loss) is True
         mask = t <= self.max_sample_step_with_constraint_loss
         # Convert mask to float
         mask = mask.float()
-        # Apply the mask to the violation_loss
-        masked_violation_loss = violation_loss * mask
-        # print(f"t {t}")
-        # print(f"violation loss {violation_loss}")
-        # print(f"mask {mask}")
-        # print(f"masked_violation_loss {masked_violation_loss}")
-        violation_loss = torch.mean(masked_violation_loss)
+        # Apply the mask to the violation_loss_final_use
+        masked_violation_loss = violation_loss_final_use * mask
+
+        violation_loss_final_use = torch.mean(masked_violation_loss)
 
         coef = torch.tensor(self.constraint_violation_weight)
 
@@ -1182,10 +1089,7 @@ class GaussianDiffusion1D(nn.Module):
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
 
-        # print(f"mse loss {loss.mean()}")
-        # print(f"violation loss {violation_loss}")
-        # print(f"weight violation loss is {coef * violation_loss}")
-        return loss.mean() + coef * violation_loss
+        return loss.mean() + coef * violation_loss_final_use
 
     def forward(self, img, *args, **kwargs):
         b, c, n, device, seq_length, = *img.shape, img.device, self.seq_length
@@ -1319,7 +1223,7 @@ class Trainer1D(object):
 
         # configure the results folder
         self.results_folder = Path(results_folder)
-        self.results_folder.mkdir(parents=True, exist_ok = True)
+        self.results_folder.mkdir(parents=True, exist_ok=True)
 
         # step counter state
         self.step = 0
@@ -1359,7 +1263,7 @@ class Trainer1D(object):
 
         data = torch.load(str(self.results_folder / f'model-{milestone}.pt'), map_location=device)
 
-        #TODO #############################################################################################
+        # TODO #############################################################################################
         # Modify state dict if necessary
         ema_state_dict = data['ema']
         if 'initted' in data['ema'] and ema_state_dict['initted'].shape == torch.Size([]):

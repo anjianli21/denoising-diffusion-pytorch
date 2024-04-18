@@ -45,6 +45,8 @@ def main():
     max_sample_step_with_constraint_loss = args.max_sample_step_with_constraint_loss
     constraint_loss_type = str(args.constraint_loss_type)
     task_type = str(args.task_type)
+    constraint_gt_sample_num = args.constraint_gt_sample_num
+    normalize_xt_by_mean_sigma = str(args.normalize_xt_by_mean_sigma)
 
     training_random_seed = args.training_random_seed
     set_seed(seed=training_random_seed)
@@ -87,7 +89,9 @@ def main():
         constraint_condscale=constraint_condscale,
         max_sample_step_with_constraint_loss=max_sample_step_with_constraint_loss,
         constraint_loss_type=constraint_loss_type,
-        task_type=task_type
+        task_type=task_type,
+        constraint_gt_sample_num=constraint_gt_sample_num,
+        normalize_xt_by_mean_sigma=normalize_xt_by_mean_sigma
     ).cuda()
 
     # # Random dataset
@@ -290,6 +294,15 @@ def parse_args():
                         default='car',
                         help="type of the task",
                         choices=["car", "tabletop", "cr3bp"])
+    parser.add_argument('--constraint_gt_sample_num',
+                        type=int,
+                        default=100,
+                        help="Number of samples for gt constraints")
+    parser.add_argument('--normalize_xt_by_mean_sigma',
+                        type=str,
+                        default="False",
+                        choices=["False", "True"],
+                        help="whether to normalize xt by analytical mean and sigma")
 
     return parser.parse_args()
 
