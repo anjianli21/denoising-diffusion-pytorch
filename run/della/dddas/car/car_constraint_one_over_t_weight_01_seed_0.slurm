@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=25G
 #SBATCH --gres=gpu:1
-#SBATCH --time=00:09:59
+#SBATCH --time=19:59:59
 #SBATCH --mail-type=all
 #SBATCH --mail-user=anjianl@princeton.edu
 #SBATCH --array=1
