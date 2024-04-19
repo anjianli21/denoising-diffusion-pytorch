@@ -260,7 +260,7 @@ def parse_args():
                         help="number of training data")
     parser.add_argument('--max_epoch',
                         type=int,
-                        default=2,
+                        default=200,
                         help="number of epochs to train")
     parser.add_argument('--result_folder',
                         type=str,
