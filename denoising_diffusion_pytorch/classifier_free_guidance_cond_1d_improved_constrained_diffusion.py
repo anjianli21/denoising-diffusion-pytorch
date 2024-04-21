@@ -1076,6 +1076,13 @@ class GaussianDiffusion1D(nn.Module):
                 difference = nn_violation_loss - gt_average_violation_loss
                 violation_loss_final_use = torch.max(difference, torch.zeros_like(difference)) / gt_std_loss
 
+            elif self.constraint_loss_type == "gt_log_likelihood":
+
+                # violation_loss_final_use = torch.log(gt_std_loss) + (1 / 2) * torch.square((nn_violation_loss - gt_average_violation_loss) / gt_std_loss)
+                violation_loss_final_use = torch.square((nn_violation_loss - gt_average_violation_loss) / gt_std_loss)
+
+                # breakpoint()
+
             else:
                 print("wrong constraint_loss_type")
                 exit()
@@ -1099,7 +1106,7 @@ class GaussianDiffusion1D(nn.Module):
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
-        # print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
+        print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
         return loss.mean() + coef * violation_loss_final_use_mean
 
     def forward(self, img, *args, **kwargs):

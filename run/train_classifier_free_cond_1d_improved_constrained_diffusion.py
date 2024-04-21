@@ -286,7 +286,7 @@ def parse_args():
                         type=str,
                         default='NA',
                         help="type of constraint loss",
-                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std", "gt_std_absolute", "gt_std_threshold", "NA"])
+                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std", "gt_std_absolute", "gt_std_threshold", "gt_log_likelihood", "NA"])
     parser.add_argument('--task_type',
                         type=str,
                         default='car',
