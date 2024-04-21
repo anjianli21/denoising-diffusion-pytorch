@@ -802,8 +802,8 @@ class GaussianDiffusion1D(nn.Module):
 
         # TODO: the giant sample loop, loop over each time steps, and sample the x_(t-1) at each steps
         for t in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-            print(t)
-            print(torch.max(img))
+            # print(t)
+            # print(torch.max(img))
             img, x_start = self.p_sample(img, t, classes, cond_scale, rescaled_phi)
 
         img = self.unnormalize(img)
