@@ -56,14 +56,24 @@ def main():
     #     f"car_constrained_improved_seed_2",
     # ]
     #
+    # data_type_list = [
+    #     "car_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     "car_constrained_step_10_type_threshold_weight_10_seed_0",
+    #     "car_constrained_step_500_type_scaled_weight_1_seed_0",
+    # ]
+    #
+    # DDDAS
     data_type_list = [
-        "car_constrained_step_10_type_scaled_weight_10_seed_0",
-        "car_constrained_step_10_type_threshold_weight_10_seed_0",
-        "car_constrained_step_500_type_scaled_weight_1_seed_0",
+        "car_constraint_gt_scaled_weight_01_seed_0",
+        "car_constraint_gt_std_absolute_weight_1_seed_0",
+        "car_constraint_gt_std_threshold_weight_1_seed_0",
+        "car_constraint_gt_std_weight_1_seed_0",
+        "car_constraint_one_over_t_weight_01_seed_0"
     ]
 
     # Configure path
-    parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
+    # parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"
+    parent_path = f"results/dddas/car"
 
     # input_obs_output_time_control_parent_path_list = [
     #     f"{parent_path}/full_data_114k_constraint_weight_0.01_condscale_6",
@@ -85,11 +95,14 @@ def main():
     #     f"{parent_path}/car_constrained_improved_seed_2",
     # ]
 
-    input_obs_output_time_control_parent_path_list = [
-        f"{parent_path}/car_constrained_step_10_type_scaled_weight_10_seed_0",
-        f"{parent_path}/car_constrained_step_10_type_threshold_weight_10_seed_0",
-        f"{parent_path}/car_constrained_step_500_type_scaled_weight_1_seed_0",
-    ]
+    # input_obs_output_time_control_parent_path_list = [
+    #     f"{parent_path}/car_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     f"{parent_path}/car_constrained_step_10_type_threshold_weight_10_seed_0",
+    #     f"{parent_path}/car_constrained_step_500_type_scaled_weight_1_seed_0",
+    # ]
+
+    # DDDAS
+    input_obs_output_time_control_parent_path_list = [f"{parent_path}/{i}" for i in data_type_list]
 
     constraint_violation_list = []
     for i in range(len(data_type_list)):

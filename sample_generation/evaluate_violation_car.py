@@ -21,13 +21,13 @@ def evaluate_violation_car():
     #     "cvae_lstm",
     # ]
 
-    # # TODO: Improved constrained, threshold
-    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
-    data_type_list = [
-        # "car_constrained_improved_seed_0",
-        "car_constrained_improved_seed_1",
-        # "car_constrained_improved_seed_2",
-    ]
+    # # # TODO: Improved constrained, threshold
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    # data_type_list = [
+    #     # "car_constrained_improved_seed_0",
+    #     "car_constrained_improved_seed_1",
+    #     # "car_constrained_improved_seed_2",
+    # ]
 
     # # Constrained
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/full_data_114k_constraint_weight_0.01_condscale_6"
@@ -81,6 +81,16 @@ def evaluate_violation_car():
     #     "uniform_seed_1",
     #     "uniform_seed_2",
     # ]
+
+    # # TODO: DDDAS
+    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+    data_type_list = [
+        # "car_constraint_gt_scaled_weight_01_seed_0",
+        # "car_constraint_gt_std_absolute_weight_1_seed_0",
+        # "car_constraint_gt_std_threshold_weight_1_seed_0",
+        # "car_constraint_gt_std_weight_1_seed_0",
+        # "car_constraint_one_over_t_weight_01_seed_0"
+    ]
 
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
