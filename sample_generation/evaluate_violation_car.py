@@ -60,8 +60,8 @@ def evaluate_violation_car():
     #
     # data_type_list = [
     #     "input_obs_output_time_control_obj_12_data_114k_seed_0",
-    #     "input_obs_output_time_control_obj_12_data_114k_seed_1",
-    #     "input_obs_output_time_control_obj_12_data_114k_seed_2",
+    #     # "input_obs_output_time_control_obj_12_data_114k_seed_1",
+    #     # "input_obs_output_time_control_obj_12_data_114k_seed_2",
     # ]
 
     # # cvae lstm
@@ -89,7 +89,11 @@ def evaluate_violation_car():
         # "car_constraint_gt_std_absolute_weight_1_seed_0",
         # "car_constraint_gt_std_threshold_weight_1_seed_0",
         # "car_constraint_gt_std_weight_1_seed_0",
-        # "car_constraint_one_over_t_weight_01_seed_0"
+        # "car_constraint_one_over_t_weight_01_seed_0",
+        # "car_constraint_gt_std_absolute_weight_01_seed_0",
+        # "car_constraint_gt_std_threshold_weight_01_seed_0",
+        "car_constraint_gt_std_weight_01_seed_0",
+        # "car_constraint_gt_log_likelihood_weight_01_seed_0"
     ]
 
     for i in range(len(data_type_list)):

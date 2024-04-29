@@ -72,7 +72,7 @@ def evaluate_violation_car():
     #     "uniform_from_training_seed_2",
     # ]
 
-    # # # Constrained
+    # # # Constrained weight 0.01
     # data_parent_path_list = [
     #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_0",
     #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_constrained_diffusion_seed_1",
@@ -84,16 +84,16 @@ def evaluate_violation_car():
     #     "tabletop_v2_constrained_diffusion_seed_2",
     # ]
 
-    # # # Diffusion
+    # # Diffusion
     # data_parent_path_list = [
     #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_0",
-    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_1",
-    #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_2",
+    #         # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_1",
+    #         # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_2",
     # ]
     # data_type_list = [
     #     "tabletop_v2_diffusion_seed_0",
-    #     "tabletop_v2_diffusion_seed_1",
-    #     "tabletop_v2_diffusion_seed_2",
+    #     # "tabletop_v2_diffusion_seed_1",
+    #     # "tabletop_v2_diffusion_seed_2",
     # ]
 
     # # # cvae lstm
@@ -123,17 +123,29 @@ def evaluate_violation_car():
 #     ]
 
     # TODO: add statistical constraints, tabletop_constrained_step_10_type_scaled_weight_10_seed_0
-    data_parent_path_list = [
-        # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
-        # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
+    # data_parent_path_list = [
+    #     # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+    #     "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
+    # ]
+    #
+    # data_type_list = [
+    #     # "tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     # "tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+    #     "tabletop_constrained_step_500_type_scaled_weight_1_seed_0"
+    # ]
+
+    # TODO: DDDAS
+    data_type_list = [
+        # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
+        # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
+        # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
+        # "tabletopv2_constraint_gt_std_weight_1_seed_0",
+        # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
+        "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0"
     ]
 
-    data_type_list = [
-        # "tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
-        # "tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
-        "tabletop_constrained_step_500_type_scaled_weight_1_seed_0"
-    ]
+    data_parent_path_list = [f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}" for data_type in data_type_list]
 
     # # local optimal
     # data_parent_path_list = [

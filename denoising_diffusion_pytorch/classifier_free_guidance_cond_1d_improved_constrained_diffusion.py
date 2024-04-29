@@ -24,6 +24,7 @@ import os
 import copy
 
 from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
 import pdb
 
 from denoising_diffusion_pytorch.version import __version__
@@ -919,7 +920,89 @@ class GaussianDiffusion1D(nn.Module):
         # noise sample
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
-        # breakpoint()
+        # TODO: plot the violation loss for each t ####################################################################
+        to_plot = False
+        to_clip = False
+        to_normalize = True
+        if to_plot:
+            violation_value_list = []
+            violation_value_sigma_list = []
+            for ii in range(500):
+                print(ii)
+                curr_t = ii * torch.ones_like(t)
+
+                curr_x_t = self.q_sample(x_start=x_start, t=curr_t, noise=noise)
+
+                # Clip
+                if to_clip:
+                    curr_x_t = torch.clamp(curr_x_t, min=-1.0, max=1.0)
+                    curr_x_t = (curr_x_t + 1.0) / 2.0
+                elif to_normalize:
+                    x_t_analytical_mean = extract(self.sqrt_alphas_cumprod, curr_t, x_start.shape) * x_start
+                    x_t_analytical_sigma = extract(self.sqrt_one_minus_alphas_cumprod, curr_t, x_start.shape)
+
+                    # Compute lower and upper bound with 3-sigma rule, should contain 99.7% data
+                    x_t_analytical_lower_bound = x_t_analytical_mean - 3 * x_t_analytical_sigma
+                    x_t_analytical_upper_bound = x_t_analytical_mean + 3 * x_t_analytical_sigma
+
+                    curr_x_t = (curr_x_t - x_t_analytical_lower_bound) / (
+                            x_t_analytical_upper_bound - x_t_analytical_lower_bound)
+                    curr_x_t = torch.clamp(curr_x_t, min=0.0, max=1.0)
+                if self.task_type == "car":
+                    # from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
+                    from denoising_diffusion_pytorch.constraint_violation_function_improved_car import \
+                        get_constraint_violation_car
+                    get_constraint_function = get_constraint_violation_car
+                elif self.task_type == "tabletop":
+                    from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import \
+                        get_constraint_violation_tabletop
+                    get_constraint_function = get_constraint_violation_tabletop
+                curr_violation_losses = get_constraint_function(curr_x_t.view(x_start.shape[0], -1),
+                                                           classes,  # Repeat classes for each sample
+                                                           1.,
+                                                           # Assuming a constant 't' value of 1 for all
+                                                           x_start.device)
+                violation_value_list.append(torch.mean(curr_violation_losses))
+                violation_value_sigma_list.append(torch.std(curr_violation_losses))
+
+            # Convert the list of tensors to a list of scalar values
+            violation_scalar_values = [value.item() for value in violation_value_list]
+            violation_sigma_scalar_values = [value.item() for value in violation_value_sigma_list]
+
+            # Generate a time range corresponding to the indices of the list
+            time_values = list(range(len(violation_scalar_values)))
+
+            # Plotting the data
+            plt.figure(figsize=(10, 5))
+            plt.plot(time_values, violation_scalar_values, marker='o', linestyle='-', color='b')
+            if to_clip:
+                plt.title(f'Violation mean - Sampling Time, Clip, {self.task_type}')
+            elif to_normalize:
+                plt.title(f'Violation mean - Sampling Time, normalized, {self.task_type}')
+            plt.xlabel('Time')
+            plt.ylabel('Violation Value')
+            plt.grid(True)
+            if self.task_type == "car":
+                plt.ylim(0, 600)
+            elif self.task_type == "tabletop":
+                plt.ylim(0, 50)
+
+            plt.figure(figsize=(10, 5))
+            plt.plot(time_values, violation_sigma_scalar_values, marker='o', linestyle='-', color='b')
+            if to_clip:
+                plt.title(f'Violation sigma - Sampling step, Clip, {self.task_type}')
+            elif to_normalize:
+                plt.title(f'Violation sigma - Sampling step, normalized, {self.task_type}')
+            plt.xlabel('Time')
+            plt.ylabel('Violation sigma')
+            plt.grid(True)
+            if self.task_type == "car":
+                plt.ylim(0, 600)
+            elif self.task_type == "tabletop":
+                plt.ylim(0, 50)
+            plt.show()
+
+        ########################################################################################################################################
         # predict and take gradient step
         model_out = self.model(x_t, t, classes)
 

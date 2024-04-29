@@ -91,14 +91,25 @@ def main():
     #     "tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
     # ]
 
+    # data_type_list = [
+    #     "tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     "tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+    #     "tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
+    # ]
+
+    # DDDAS
     data_type_list = [
-        "tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
-        "tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
-        "tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
+        # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
+        # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
+        # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
+        # "tabletopv2_constraint_gt_std_weight_1_seed_0",
+        # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
+        "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0"
     ]
 
     # Configure path ##############################################################################################
-    parent_path = f"results/from_autodl/diffusion/tabletop_v2/results"
+    # parent_path = f"results/from_autodl/diffusion/tabletop_v2/results"
+    parent_path = f"results/dddas/tabletop_v2"
 
     # input_obs_goal_output_time_control_parent_path_list = [
     #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
@@ -130,11 +141,14 @@ def main():
     #     f"{parent_path}/tabletop_v2_constrained_improved_weight_10_diffusion_seed_2",
     # ]
 
-    input_obs_goal_output_time_control_parent_path_list = [
-        f"{parent_path}/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
-        f"{parent_path}/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
-        f"{parent_path}/tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
-    ]
+    # input_obs_goal_output_time_control_parent_path_list = [
+    #     f"{parent_path}/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
+    #     f"{parent_path}/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
+    #     f"{parent_path}/tabletop_constrained_step_500_type_scaled_weight_1_seed_0",
+    # ]
+
+    # DDDAS
+    input_obs_goal_output_time_control_parent_path_list = [f"{parent_path}/{i}" for i in data_type_list]
 
     constraint_violation_list = []
     for i in range(len(data_type_list)):
