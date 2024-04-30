@@ -25,7 +25,7 @@ python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classi
     num_files = len(constraint_loss_types)
     for i in range(num_files):
         weight_without_dot = ''.join(constraint_violation_weights[i].split('.'))
-        training_data_type = f"tabletopv2_constraint_{constraint_loss_types[i]}_schedule_{constraint_loss_schedulings[i]}_normalize_{normalize_xt_types[i]}_max_sample_{max_sample_steps[i]}_weight_{weight_without_dot}_seed_0"
+        training_data_type = f"tabletopv2_experiment_{constraint_loss_types[i]}_schedule_{constraint_loss_schedulings[i]}_normalize_{normalize_xt_types[i]}_max_sample_{max_sample_steps[i]}_weight_{weight_without_dot}_seed_0"
 
         file_content = slurm_template.format(
             constraint_loss_type=constraint_loss_types[i],
