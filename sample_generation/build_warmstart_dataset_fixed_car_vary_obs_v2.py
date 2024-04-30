@@ -76,19 +76,22 @@ def main():
     #     "car_constrained_step_500_type_scaled_weight_1_seed_0",
     # ]
 
-    # DDDAS
-    data_type_list = [
+    # TODO: DDDAS
+    # data_type_list = [
         # "car_constraint_gt_scaled_weight_01_seed_0",
         # "car_constraint_gt_std_absolute_weight_1_seed_0",
         # "car_constraint_gt_std_threshold_weight_1_seed_0",
         # "car_constraint_gt_std_weight_1_seed_0",
         # "car_constraint_one_over_t_weight_01_seed_0"
         # "car_constraint_gt_std_absolute_weight_01_seed_0",
-        "car_constraint_gt_std_threshold_weight_01_seed_0",
+        # "car_constraint_gt_std_threshold_weight_01_seed_0",
         # "car_constraint_gt_std_weight_01_seed_0",
         # "car_constraint_gt_log_likelihood_weight_01_seed_0"
+    # ]
+    data_type_list = [
+        "car_constraint_pred_x0_one_over_t_weight_01_seed_0",
+        "car_constraint_pred_x0_weight_0001_seed_0"
     ]
-
 
     # Configure path
     # parent_path = f"results/from_autodl/diffusion/fixed_car_vary_obs/results"

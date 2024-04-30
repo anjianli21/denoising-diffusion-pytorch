@@ -45,13 +45,16 @@ def main():
     constraint_loss_type = str(args.constraint_loss_type)
     task_type = str(args.task_type)
     constraint_gt_sample_num = args.constraint_gt_sample_num
-    normalize_xt_by_mean_sigma = str(args.normalize_xt_by_mean_sigma)
+    normalize_xt_type = str(args.normalize_xt_type)
+    constraint_loss_scheduling = str(args.constraint_loss_scheduling)
 
     training_random_seed = args.training_random_seed
     set_seed(seed=training_random_seed)
 
     print(f"constraint_loss_type {constraint_loss_type}")
-    print(f"normalize_xt_by_mean_sigma {normalize_xt_by_mean_sigma}")
+    print(f"constraint_loss_scheduling {constraint_loss_scheduling}")
+    print(f"max_sample_step_with_constraint_loss {max_sample_step_with_constraint_loss}")
+    print(f"normalize_xt_type {normalize_xt_type}")
     print(f"constraint_violation_weight {constraint_violation_weight}")
 
     #####################################################################################################################
@@ -88,7 +91,8 @@ def main():
         constraint_loss_type=constraint_loss_type,
         task_type=task_type,
         constraint_gt_sample_num=constraint_gt_sample_num,
-        normalize_xt_by_mean_sigma=normalize_xt_by_mean_sigma
+        normalize_xt_type=normalize_xt_type,
+        constraint_loss_scheduling=constraint_loss_scheduling
     ).cuda()
 
     # # Random dataset
@@ -286,7 +290,7 @@ def parse_args():
                         type=str,
                         default='NA',
                         help="type of constraint loss",
-                        choices=["one_over_t", "gt_threshold", "gt_scaled", "gt_std", "gt_std_absolute", "gt_std_threshold", "gt_log_likelihood", "predict_x0_violation", "predict_x0_violation_one_over_t", "NA"])
+                        choices=["vanilla", "gt_threshold", "gt_scaled", "gt_std", "gt_std_absolute", "gt_std_threshold", "gt_log_likelihood", "predict_x0_violation", "predict_x0_violation_one_over_t", "NA"])
     parser.add_argument('--task_type',
                         type=str,
                         default='car',
@@ -296,11 +300,15 @@ def parse_args():
                         type=int,
                         default=100,
                         help="Number of samples for gt constraints")
-    parser.add_argument('--normalize_xt_by_mean_sigma',
+    parser.add_argument('--normalize_xt_type',
                         type=str,
-                        default="False",
-                        choices=["False", "True"],
+                        default="direct_clip",
+                        choices=["direct_clip", "x0_mean_var", "-1_-1_var"],
                         help="whether to normalize xt by analytical mean and sigma")
+    parser.add_argument('--constraint_loss_scheduling',
+                        type=str,
+                        default="NA",
+                        choices=["NA", "one_over_t", "sqrt_bar_alpha"])
 
     return parser.parse_args()
 

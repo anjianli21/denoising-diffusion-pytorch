@@ -610,10 +610,11 @@ class GaussianDiffusion1D(nn.Module):
             constraint_violation_weight=0.001,
             constraint_condscale=6.,
             max_sample_step_with_constraint_loss=500,
-            constraint_loss_type="one_over_t",
+            constraint_loss_type="vanilla",
             task_type="car",
             constraint_gt_sample_num=1,
-            normalize_xt_by_mean_sigma="False",
+            normalize_xt_type="direct_clip",
+            constraint_loss_scheduling="NA",
     ):
         super().__init__()
         self.model = model
@@ -627,7 +628,8 @@ class GaussianDiffusion1D(nn.Module):
         self.constraint_loss_type = constraint_loss_type
         self.task_type = task_type
         self.constraint_gt_sample_num = constraint_gt_sample_num
-        self.normalize_xt_by_mean_sigma = normalize_xt_by_mean_sigma
+        self.normalize_xt_type = normalize_xt_type
+        self.constraint_loss_scheduling = constraint_loss_scheduling
 
         assert objective in {'pred_noise', 'pred_x0',
                              'pred_v'}, 'objective must be either pred_noise (predict noise) or pred_x0 (predict image start) or pred_v (predict v [v-parameterization as defined in appendix D of progressive distillation paper, used in imagen-video successfully])'
@@ -984,22 +986,6 @@ class GaussianDiffusion1D(nn.Module):
                                                             1.,
                                                             # Assuming a constant 't' value of 1 for all
                                                             x_start.device)
-
-                violation_loss_final_use = nn_violation_loss
-
-            if self.constraint_loss_type == "predict_x0_violation_one_over_t":
-                predicted_noise = model_out
-                x_start_predicted = self.predict_start_from_noise(x_t, t, predicted_noise)
-
-                x_start_predicted = torch.clamp(x_start_predicted, min=-1.0, max=1.0)
-                x_start_predicted = (x_start_predicted + 1.0) / 2.0
-
-                nn_violation_loss = get_constraint_function(x_start_predicted.view(x_start.shape[0], -1),
-                                                            classes,  # Repeat classes for each sample
-                                                            1. / (t + 1),
-                                                            # Assuming a constant 't' value of 1 for all
-                                                            x_start.device)
-
                 violation_loss_final_use = nn_violation_loss
 
             else:
@@ -1025,20 +1011,26 @@ class GaussianDiffusion1D(nn.Module):
                 x_t_1_analytical_lower_bound = x_t_1_analytical_mean - 3 * x_t_1_analytical_sigma
                 x_t_1_analytical_upper_bound = x_t_1_analytical_mean + 3 * x_t_1_analytical_sigma
 
-                if self.normalize_xt_by_mean_sigma == "True":
+                if self.normalize_xt_type == "x0_mean_var":
                     x_t_1 = (x_t_1 - x_t_1_analytical_lower_bound) / (
                             x_t_1_analytical_upper_bound - x_t_1_analytical_lower_bound)
                     x_t_1 = torch.clamp(x_t_1, min=0.0, max=1.0)
-                else:
+                elif self.normalize_xt_type == "-1_-1_var":
+                    upper_bound = 1.0 + 3 * x_t_1_analytical_sigma
+                    lower_bound = -1.0 - 3 * x_t_1_analytical_sigma
+                    x_t_1 = (x_t_1 - lower_bound) / (
+                            upper_bound - lower_bound)
+                    x_t_1 = torch.clamp(x_t_1, min=0.0, max=1.0)
+                elif self.normalize_xt_type == "direct_clip":
                     x_t_1 = torch.clamp(x_t_1, min=-1.0, max=1.0)
                     x_t_1 = (x_t_1 + 1.0) / 2.0
 
                 #############################################################################################################
                 # TODO: choose constraint function
-                if self.constraint_loss_type == "one_over_t":
+                if self.constraint_loss_type == "vanilla":
                     nn_violation_loss = get_constraint_function(x_t_1.view(x_start.shape[0], -1),
                                                                 classes,  # Repeat classes for each sample
-                                                                1. / (t + 1),
+                                                                1.,
                                                                 # Assuming a constant 't' value of 1 for all
                                                                 x_start.device)
 
@@ -1051,7 +1043,7 @@ class GaussianDiffusion1D(nn.Module):
                     x_t_1_gt = self.q_sample_many(x_start=x_start, t=t - 1, sample_num=self.constraint_gt_sample_num)
 
                     # TODO: clip the x_t_1_gt from q_sample
-                    if self.normalize_xt_by_mean_sigma == "True":
+                    if self.normalize_xt_type == "x0_mean_var":
                         expanded_lower_bound = x_t_1_analytical_lower_bound.unsqueeze(-1).expand(-1, -1, -1,
                                                                                                  self.constraint_gt_sample_num)
                         expanded_upper_bound = x_t_1_analytical_upper_bound.unsqueeze(-1).expand(-1, -1, -1,
@@ -1059,7 +1051,15 @@ class GaussianDiffusion1D(nn.Module):
 
                         x_t_1_gt = (x_t_1_gt - expanded_lower_bound) / (expanded_upper_bound - expanded_lower_bound)
                         x_t_1_gt = torch.clamp(x_t_1_gt, min=0.0, max=1.0)
-                    else:
+                    elif self.normalize_xt_type == "-1_-1_var":
+                        upper_bound = 1.0 + 3 * x_t_1_analytical_sigma.unsqueeze(-1).expand(-1, -1, -1,
+                                                                                                 self.constraint_gt_sample_num)
+                        lower_bound = -1.0 - 3 * x_t_1_analytical_sigma.unsqueeze(-1).expand(-1, -1, -1,
+                                                                                                 self.constraint_gt_sample_num)
+                        x_t_1_gt = (x_t_1_gt - lower_bound) / (
+                                upper_bound - lower_bound)
+                        x_t_1_gt = torch.clamp(x_t_1_gt, min=0.0, max=1.0)
+                    elif self.normalize_xt_type == "direct_clip":
                         x_t_1_gt = torch.clamp(x_t_1_gt, min=-1.0, max=1.0)
                         x_t_1_gt = (x_t_1_gt + 1.0) / 2.0
 
@@ -1132,7 +1132,15 @@ class GaussianDiffusion1D(nn.Module):
                     #     print("wrong constraint_loss_type")
                     #     exit()
 
-        ######################################################################3
+        ######################################################################
+        # TODO: conduct scheduling for violation loss across sampling steps
+        if self.constraint_loss_scheduling == "NA":
+            pass
+        elif self.constraint_loss_scheduling == "one_over_t":
+            violation_loss_final_use = violation_loss_final_use * (1./(t + 1))
+        elif self.constraint_loss_scheduling == "sqrt_bar_alpha":
+            violation_loss_final_use = extract(self.sqrt_alphas_cumprod, t, x_start.shape) * violation_loss_final_use
+
         # TODO: Specify the sampling step that has contraint violation loss
         # Create a mask where condition (t <= max_sample_step_with_constraint_loss) is True
         mask = t <= self.max_sample_step_with_constraint_loss
@@ -1151,6 +1159,8 @@ class GaussianDiffusion1D(nn.Module):
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
+
+
         print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
         return loss.mean() + coef * violation_loss_final_use_mean
 
@@ -1294,9 +1304,11 @@ class Trainer1D(object):
             'task_type': diffusion_model.task_type,
             'constraint_loss_type': diffusion_model.constraint_loss_type,
             'constraint_gt_sample_num': diffusion_model.constraint_gt_sample_num,
-            'normalize_xt_by_mean_sigma': diffusion_model.normalize_xt_by_mean_sigma,
+            'normalize_xt_type': diffusion_model.normalize_xt_type,
             'constraint_violation_weight': diffusion_model.constraint_violation_weight,
-            'training_random_seed': training_random_seed
+            'training_random_seed': training_random_seed,
+            'max_sample_step_with_constraint_loss': diffusion_model.max_sample_step_with_constraint_loss,
+            'constraint_loss_scheduling': diffusion_model.constraint_loss_scheduling
         }
 
         # Generate a unique name for the run
@@ -1309,7 +1321,10 @@ class Trainer1D(object):
         #            f"data_num: {hyperparameters['training_data_num']}"
         run_name = f"task_type: {hyperparameters['task_type']}, constraint_loss_type: {hyperparameters['constraint_loss_type']}, " \
                    f"constraint_violation_weight: {hyperparameters['constraint_violation_weight']}, " \
-                   f"training_random_seed: {hyperparameters['training_random_seed']}"
+                   f"training_random_seed: {hyperparameters['training_random_seed']}, " \
+                   f"normalize_xt_type: {hyperparameters['normalize_xt_type']}, " \
+                   f"max_sample_step_with_constraint_loss: {hyperparameters['max_sample_step_with_constraint_loss']}, " \
+                   f"constraint_loss_scheduling: {hyperparameters['constraint_loss_scheduling']}"
 
         wandb.init(project=wandb_project_name, name=run_name, config=hyperparameters)
         ############################################################################################
