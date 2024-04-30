@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #SBATCH --job-name=diffusion
 #SBATCH --output=/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/output/tabletop_v2/dr_v0.%A.%a.out
