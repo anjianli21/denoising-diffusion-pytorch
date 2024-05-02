@@ -104,7 +104,9 @@ def main():
         # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
         # "tabletopv2_constraint_gt_std_weight_1_seed_0",
         # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
-        "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0"
+        # "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0",
+        # "tabletopv2_constraint_pred_x0_one_over_t_weight_1_seed_0",
+        "tabletopv2_constraint_pred_x0_weight_001_seed_0",
     ]
 
     # Configure path ##############################################################################################
@@ -166,7 +168,7 @@ def main():
             # obs sample
             is_condition_reasonable = False
             while not is_condition_reasonable:
-                print("sample obs again")
+                # print("sample obs again")
                 car_start_pos = np.array([[5.0, 5.0], [0.0, 0.0], [10.0, 10.0]])
                 car_goal_pos = np.array(
                     [[[1.0, 1.0], [1.0, 9.0], [9.0, 1.0], [9.0, 9.0]][rng_condition.randint(low=0, high=4)]])
