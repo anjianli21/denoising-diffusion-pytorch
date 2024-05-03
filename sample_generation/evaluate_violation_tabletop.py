@@ -84,7 +84,7 @@ def evaluate_violation_car():
     #     "tabletop_v2_constrained_diffusion_seed_2",
     # ]
 
-    # # Diffusion
+    # # TODO： Diffusion vanilla
     # data_parent_path_list = [
     #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_0",
     #         # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_1",
@@ -96,7 +96,7 @@ def evaluate_violation_car():
     #     # "tabletop_v2_diffusion_seed_2",
     # ]
 
-    # # # cvae lstm
+    # # # TODO： cvae lstm
     # data_parent_path_list = [
     #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/cvae_lstm_seed_0",
     #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/cvae_lstm_seed_1",
@@ -109,7 +109,7 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_2",
     # ]
 
-#     # uniform
+#     # TODO： uniform
 #     data_parent_path_list = [
 #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
 #         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
@@ -122,7 +122,7 @@ def evaluate_violation_car():
 #         "uniform_seed_2",
 #     ]
 
-    # TODO: add statistical constraints, tabletop_constrained_step_10_type_scaled_weight_10_seed_0
+    #  add statistical constraints, tabletop_constrained_step_10_type_scaled_weight_10_seed_0
     # data_parent_path_list = [
     #     # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_scaled_weight_10_seed_0",
     #     # "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_constrained_step_10_type_threshold_weight_100_seed_0",
@@ -136,14 +136,25 @@ def evaluate_violation_car():
     # ]
 
     # TODO: DDDAS
+    # data_type_list = [
+    #     # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
+    #     # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
+    #     # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
+    #     # "tabletopv2_constraint_gt_std_weight_1_seed_0",
+    #     # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
+    #     # "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0",
+    #     # "tabletopv2_constraint_pred_x0_one_over_t_weight_1_seed_0",
+    #     "tabletopv2_constraint_pred_x0_weight_001_seed_0"
+    # ]
     data_type_list = [
-        # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
-        # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
-        # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
-        # "tabletopv2_constraint_gt_std_weight_1_seed_0",
-        # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
-        "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0"
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        # "tabletopv2_experiment_gt_scaled_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "tabletopv2_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+        # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+        # "tabletopv2_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+        "tabletopv2_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
     ]
+
 
     data_parent_path_list = [f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}" for data_type in data_type_list]
 

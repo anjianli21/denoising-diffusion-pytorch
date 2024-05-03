@@ -1161,7 +1161,7 @@ class GaussianDiffusion1D(nn.Module):
         loss = loss * extract(self.loss_weight, t, loss.shape)
 
 
-        print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
+        # print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
         return loss.mean() + coef * violation_loss_final_use_mean
 
     def plot_constraint_violation(self, to_clip, to_normalize, t, x_start, noise, classes):

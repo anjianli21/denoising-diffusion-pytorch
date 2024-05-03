@@ -94,18 +94,30 @@ def main():
     # ]
 
     # DDDAS
+    # data_type_list = [
+    #     # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
+    #     # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
+    #     # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
+    #     # "tabletopv2_constraint_gt_std_weight_1_seed_0",
+    #     # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
+    #     "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0"
+
+    # ]
     data_type_list = [
-        # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
-        # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
-        # "tabletopv2_constraint_gt_std_threshold_weight_1_seed_0",
-        # "tabletopv2_constraint_gt_std_weight_1_seed_0",
-        # "tabletopv2_constraint_one_over_t_weight_10_seed_0",
-        "tabletopv2_constraint_gt_log_likelihood_weight_01_seed_0"
+        "tabletopv2_constraint_pred_x0_one_over_t_weight_1_seed_0",
+        "tabletopv2_constraint_pred_x0_weight_001_seed_0"
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        # "tabletopv2_experiment_gt_scaled_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "tabletopv2_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+        # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+        # "tabletopv2_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+        # "tabletopv2_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
     ]
     
     # Configure path ##############################################################################################
     # parent_path = f"results/from_autodl/diffusion/tabletop_v2/results"
     parent_path = f"results/dddas/tabletop_v2"
+    # parent_path = f"results/dddas/tabletop_v2/0429"
 
     # input_obs_goal_output_time_control_parent_path_list = [
     #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
@@ -162,7 +174,7 @@ def main():
             # obs sample
             is_condition_reasonable = False
             while not is_condition_reasonable:
-                print("sample obs again")
+                # print("sample obs again")
                 car_start_pos = np.array([[5.0, 5.0], [0.0, 0.0], [10.0, 10.0]])
                 car_goal_pos = np.array(
                     [[[1.0, 1.0], [1.0, 9.0], [9.0, 1.0], [9.0, 9.0]][rng_condition.randint(low=0, high=4)]])

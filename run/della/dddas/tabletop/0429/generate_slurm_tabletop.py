@@ -42,11 +42,12 @@ python /home/al5844/desktop/project/denoising-diffusion-pytorch/run/train_classi
 
 
 # Example usage:
-constraint_loss_types = ['vanilla', 'vanilla', 'gt_scaled', 'gt_scaled', 'gt_scaled', 'predict_x0_violation', 'vanilla', 'vanilla', 'vanilla', 'gt_scaled', 'gt_scaled', 'gt_scaled', 'gt_scaled']
-constraint_violation_weights = ['0.001', '0.01', "10", "1", "1", "0.01", '0.1', '0.001', '0.01', '0.1', '10', '1', '1']
-constraint_loss_schedulings = ['sqrt_bar_alpha', 'NA', "one_over_t", "sqrt_bar_alpha", "NA", "NA", "one_over_t", "sqrt_bar_alpha", "NA", "NA", "one_over_t", "sqrt_bar_alpha", "NA"]
-max_sample_steps = ['500', '100', '500', '500', '100', '100', '500', '500', '100', '500', '500', '500', '100']
-normalize_xt_types = ['direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', "-1_-1_var", "-1_-1_var", "-1_-1_var", "-1_-1_var", "-1_-1_var", "-1_-1_var", "-1_-1_var"]
+constraint_loss_types = ['vanilla', 'vanilla', 'predict_x0_violation', 'gt_std', 'gt_std', 'gt_std', 'gt_log_likelihood', 'gt_log_likelihood', 'gt_log_likelihood', 'predict_x0_violation']
+constraint_violation_weights = ['0.1', '1', '0.1', '10', '10', '10', '10', '1', '1', '0.1']
+constraint_loss_schedulings = ['sqrt_bar_alpha', 'NA', "NA", "one_over_t", "sqrt_bar_alpha", 'NA', "one_over_t", "sqrt_bar_alpha", 'NA', "sqrt_bar_alpha"]
+max_sample_steps = ['500', '100', '100', '500', '500', '100', '500', '500', '100','500']
+normalize_xt_types = ['direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip', 'direct_clip']
+
 
 generate_slurm_files(constraint_loss_types, constraint_violation_weights, constraint_loss_schedulings, max_sample_steps,
                      normalize_xt_types)
