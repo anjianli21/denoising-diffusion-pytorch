@@ -146,16 +146,28 @@ def evaluate_violation_car():
     #     # "tabletopv2_constraint_pred_x0_one_over_t_weight_1_seed_0",
     #     "tabletopv2_constraint_pred_x0_weight_001_seed_0"
     # ]
+
+    # data_type_list = [
+    #     # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+    #     # "tabletopv2_experiment_gt_scaled_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+    #     # "tabletopv2_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+    #     # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+    #     # "tabletopv2_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+    #     "tabletopv2_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
+    # ]
+
     data_type_list = [
-        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
-        # "tabletopv2_experiment_gt_scaled_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
-        # "tabletopv2_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
-        # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
-        # "tabletopv2_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
-        "tabletopv2_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
+        # "tabletopv2_experiment_gt_log_likelihood_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        # "tabletopv2_experiment_gt_log_likelihood_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "tabletopv2_experiment_gt_log_likelihood_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+        # "tabletopv2_experiment_gt_std_schedule_NA_normalize_direct_clip_max_sample_100_weight_10_seed_0",
+        # "tabletopv2_experiment_gt_std_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "tabletopv2_experiment_gt_std_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_01_seed_0",
+        # "tabletopv2_experiment_predict_x0_violation_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_01_seed_0",
+        # "tabletopv2_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        "tabletopv2_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_01_seed_0",
     ]
-
-
     data_parent_path_list = [f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}" for data_type in data_type_list]
 
     # # local optimal

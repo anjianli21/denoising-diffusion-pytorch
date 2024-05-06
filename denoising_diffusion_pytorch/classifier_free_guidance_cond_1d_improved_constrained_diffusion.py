@@ -4,6 +4,7 @@ from random import random
 from functools import partial
 from collections import namedtuple
 from multiprocessing import cpu_count
+import seaborn as sns
 
 import torch
 from torch import nn, einsum, Tensor
@@ -26,6 +27,8 @@ import copy
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 import pdb
+
+import numpy as np
 
 from denoising_diffusion_pytorch.version import __version__
 
@@ -925,9 +928,8 @@ class GaussianDiffusion1D(nn.Module):
         # TODO: plot the violation loss for each t ####################################################################
         to_plot = False
         to_clip = True
-        to_normalize = False
         if to_plot:
-            self.plot_constraint_violation(to_clip=to_clip, to_normalize=to_normalize, t=t, x_start=x_start,
+            self.plot_constraint_violation(to_clip=to_clip, t=t, x_start=x_start,
                                            noise=noise, classes=classes)
 
         ########################################################################################################################################
@@ -1006,6 +1008,11 @@ class GaussianDiffusion1D(nn.Module):
                 safe_t_1 = torch.where((t - 1) == -1, torch.zeros_like(t), t - 1)
                 x_t_1_analytical_mean = extract(self.sqrt_alphas_cumprod, safe_t_1, x_start.shape) * x_start
                 x_t_1_analytical_sigma = extract(self.sqrt_one_minus_alphas_cumprod, safe_t_1, x_start.shape)
+                # TODO: check for t = 0, when doing one step reverse sample, we should have mean equal to x_start, and sigma equal to zero
+                condition = ((t - 1) == -1).unsqueeze(1).unsqueeze(2)
+                condition = condition.expand_as(x_t_1_analytical_mean)
+                x_t_1_analytical_mean = torch.where(condition, x_start, x_t_1_analytical_mean)
+                x_t_1_analytical_sigma = torch.where(condition, 0.0 * torch.ones_like(x_t_1_analytical_sigma) + 1e-4, x_t_1_analytical_sigma)
 
                 # Compute lower and upper bound with 3-sigma rule, should contain 99.7% data
                 x_t_1_analytical_lower_bound = x_t_1_analytical_mean - 3 * x_t_1_analytical_sigma
@@ -1149,6 +1156,8 @@ class GaussianDiffusion1D(nn.Module):
         # Apply the mask to the violation_loss_final_use
         masked_violation_loss = violation_loss_final_use * mask
 
+        breakpoint()
+
         violation_loss_final_use_mean = torch.mean(masked_violation_loss)
 
         coef = torch.tensor(self.constraint_violation_weight)
@@ -1161,34 +1170,49 @@ class GaussianDiffusion1D(nn.Module):
         loss = loss * extract(self.loss_weight, t, loss.shape)
 
 
-        # print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
+        print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
         return loss.mean() + coef * violation_loss_final_use_mean
 
-    def plot_constraint_violation(self, to_clip, to_normalize, t, x_start, noise, classes):
+    def plot_constraint_violation(self, to_clip, t, x_start, noise, classes):
 
         violation_value_list = []
+        violation_value_mean_list = []
         violation_value_sigma_list = []
+        nn_violation_value_list = []
+        pred_x0_violation_value_list = []
         for ii in range(500):
-            print(ii)
+            print(f"sampling step {ii}")
             curr_t = ii * torch.ones_like(t)
 
-            curr_x_t = self.q_sample(x_start=x_start, t=curr_t, noise=noise)
+            with torch.no_grad():
+                # Sample GT x_t
+                curr_x_t = self.q_sample(x_start=x_start, t=curr_t, noise=noise)
+                # Sample NN x_t_1
+                cond_scale = self.constraint_condscale
+                rescaled_phi = 0.7
+                nn_x_t_1, _ = self.p_sample(curr_x_t, curr_t, classes, cond_scale, rescaled_phi)
+                # Sample predict x0
+                model_out = self.model(curr_x_t, curr_t, classes)
+                predicted_noise = model_out
+                x_start_predicted = self.predict_start_from_noise(curr_x_t, curr_t, predicted_noise)
 
             # Clip
             if to_clip:
                 curr_x_t = torch.clamp(curr_x_t, min=-1.0, max=1.0)
                 curr_x_t = (curr_x_t + 1.0) / 2.0
-            elif to_normalize:
-                x_t_analytical_mean = extract(self.sqrt_alphas_cumprod, curr_t, x_start.shape) * x_start
-                x_t_analytical_sigma = extract(self.sqrt_one_minus_alphas_cumprod, curr_t, x_start.shape)
 
-                # Compute lower and upper bound with 3-sigma rule, should contain 99.7% data
-                x_t_analytical_lower_bound = x_t_analytical_mean - 3 * x_t_analytical_sigma
-                x_t_analytical_upper_bound = x_t_analytical_mean + 3 * x_t_analytical_sigma
+                nn_x_t_1 = torch.clamp(nn_x_t_1, min=-1.0, max=1.0)
+                nn_x_t_1 = (nn_x_t_1 + 1.0) / 2.0
 
-                curr_x_t = (curr_x_t - x_t_analytical_lower_bound) / (
-                        x_t_analytical_upper_bound - x_t_analytical_lower_bound)
-                curr_x_t = torch.clamp(curr_x_t, min=0.0, max=1.0)
+                x_start_predicted = torch.clamp(x_start_predicted, min=-1.0, max=1.0)
+                x_start_predicted = (x_start_predicted + 1.0) / 2.0
+            else:
+                curr_x_t = (curr_x_t + 1.0) / 2.0
+
+                nn_x_t_1 = (nn_x_t_1 + 1.0) / 2.0
+
+                x_start_predicted = (x_start_predicted + 1.0) / 2.0
+
             if self.task_type == "car":
                 # from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
                 from denoising_diffusion_pytorch.constraint_violation_function_improved_car import \
@@ -1198,33 +1222,58 @@ class GaussianDiffusion1D(nn.Module):
                 from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import \
                     get_constraint_violation_tabletop
                 get_constraint_function = get_constraint_violation_tabletop
+
+            # Collect GT violation losses
             curr_violation_losses = get_constraint_function(curr_x_t.view(x_start.shape[0], -1),
                                                             classes,  # Repeat classes for each sample
                                                             1.,
                                                             # Assuming a constant 't' value of 1 for all
                                                             x_start.device)
-            violation_value_list.append(torch.mean(curr_violation_losses))
+            violation_value_mean_list.append(torch.mean(curr_violation_losses))
             violation_value_sigma_list.append(torch.std(curr_violation_losses))
+            violation_value_list.append(curr_violation_losses)
+
+            # Collect nn violation loss
+            nn_violation_losses = get_constraint_function(nn_x_t_1.view(x_start.shape[0], -1),
+                                                            classes,  # Repeat classes for each sample
+                                                            1.,
+                                                            # Assuming a constant 't' value of 1 for all
+                                                            x_start.device)
+            nn_violation_losses = nn_violation_losses.detach().cpu()  # Detach from the graph
+            nn_violation_value_list.append(nn_violation_losses)  # Move to CPU
+
+            # Collect pred_x0 violation loss
+            pred_x0_violation_losses = get_constraint_function(x_start_predicted.view(x_start.shape[0], -1),
+                                                            classes,  # Repeat classes for each sample
+                                                            1.,
+                                                            # Assuming a constant 't' value of 1 for all
+                                                            x_start.device)
+            pred_x0_violation_losses = pred_x0_violation_losses.detach().cpu()  # Detach from the graph
+            pred_x0_violation_value_list.append(pred_x0_violation_losses)  # Move to CPU
+
+            # Cleanup
+            del curr_x_t, nn_x_t_1, curr_violation_losses, nn_violation_losses, pred_x0_violation_losses
+            torch.cuda.empty_cache()
 
         # Convert the list of tensors to a list of scalar values
-        violation_scalar_values = [value.item() for value in violation_value_list]
+        violation_mean_scalar_values = [value.item() for value in violation_value_mean_list]
         violation_sigma_scalar_values = [value.item() for value in violation_value_sigma_list]
 
         # Generate a time range corresponding to the indices of the list
-        time_values = list(range(len(violation_scalar_values)))
+        time_values = list(range(len(violation_mean_scalar_values)))
 
         # Plotting the data
         plt.figure(figsize=(10, 5))
-        plt.plot(time_values, violation_scalar_values, marker='o', linestyle='-', color='b')
+        plt.plot(time_values, violation_mean_scalar_values, marker='o', linestyle='-', color='b')
         if to_clip:
             plt.title(f'Violation mean - Sampling Time, Clip, {self.task_type}')
-        elif to_normalize:
-            plt.title(f'Violation mean - Sampling Time, normalized, {self.task_type}')
+        else:
+            plt.title(f'Violation mean - Sampling Time, no clipping, {self.task_type}')
         plt.xlabel('Time')
         plt.ylabel('Violation Value')
         plt.grid(True)
         if self.task_type == "car":
-            plt.ylim(0, 600)
+            plt.ylim(0, 900)
         elif self.task_type == "tabletop":
             plt.ylim(0, 50)
 
@@ -1232,8 +1281,8 @@ class GaussianDiffusion1D(nn.Module):
         plt.plot(time_values, violation_sigma_scalar_values, marker='o', linestyle='-', color='b')
         if to_clip:
             plt.title(f'Violation sigma - Sampling step, Clip, {self.task_type}')
-        elif to_normalize:
-            plt.title(f'Violation sigma - Sampling step, normalized, {self.task_type}')
+        else:
+            plt.title(f'Violation sigma - Sampling step, no clipping, {self.task_type}')
         plt.xlabel('Time')
         plt.ylabel('Violation sigma')
         plt.grid(True)
@@ -1242,6 +1291,68 @@ class GaussianDiffusion1D(nn.Module):
         elif self.task_type == "tabletop":
             plt.ylim(0, 50)
         plt.show()
+
+        # 95% confidence plot for the gt vs nn violation
+        plt.figure(figsize=(10, 5))
+        self.plot_confidence_intervel(violation_value_list, data_type="GT", task_type=self.task_type)
+        self.plot_confidence_intervel(nn_violation_value_list, data_type="NN", task_type=self.task_type)
+        plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
+        plt.xlabel('Sampling Step')
+        plt.ylabel('Violation Value')
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+        # 95% confidence plot for the nn violation
+        plt.figure(figsize=(10, 5))
+        self.plot_confidence_intervel(nn_violation_value_list, data_type="NN", task_type=self.task_type)
+        plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
+        plt.xlabel('Sampling Step')
+        plt.ylabel('Violation Value')
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+        # 95% confidence plot for the pred_x0 violation
+        plt.figure(figsize=(10, 5))
+        self.plot_confidence_intervel(pred_x0_violation_value_list, data_type="pred_x0", task_type=self.task_type)
+        plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
+        plt.xlabel('Sampling Step')
+        plt.ylabel('Violation Value')
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+        breakpoint()
+
+    @staticmethod
+    def plot_confidence_intervel(violation_value_list, data_type, task_type):
+
+        # Convert list of tensors to a NumPy array for easier manipulation
+        data = np.array([t.cpu().numpy() for t in violation_value_list])
+
+        # Compute the mean of the violation values across the 128 samples at each step
+        mean_values = data.mean(axis=1)
+
+        # Compute the standard deviation at each step to use for confidence interval
+        std_deviation = data.std(axis=1)
+
+        # Number of samples in each tensor, which is 128
+        n_samples = data.shape[1]
+
+        # Compute the 95% confidence interval margin (1.96 is the z-score for 95% confidence)
+        ci_95 = 1.96 * std_deviation / np.sqrt(n_samples)
+
+        # Create a time step array from 1 to 500 for the x-axis
+        if data_type == "GT" or "pred_x0":
+            steps = np.arange(1, 501)
+        elif data_type == "NN":
+            steps = np.arange(0, 500)
+
+        # Plot using seaborn for the mean line and fill between for the confidence interval
+        sns.lineplot(x=steps, y=mean_values, label=f'{data_type} Mean Violation Value')
+        plt.fill_between(steps, mean_values - ci_95, mean_values + ci_95, alpha=0.5,
+                         label='95% Confidence Interval')
 
     def forward(self, img, *args, **kwargs):
         b, c, n, device, seq_length, = *img.shape, img.device, self.seq_length

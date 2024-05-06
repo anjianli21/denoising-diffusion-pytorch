@@ -21,7 +21,7 @@ def evaluate_violation_car():
     #     "cvae_lstm",
     # ]
 
-    # # # TODO: Improved constrained, threshold
+    # # : Improved constrained, threshold
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
     # data_type_list = [
     #     # "car_constrained_improved_seed_0",
@@ -47,7 +47,7 @@ def evaluate_violation_car():
     #     "uniform_from_training_seed_2",
     # ]
 
-    # TODO: add statistical constraints
+    # add statistical constraints
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
     # data_type_list = [
     #     "car_constrained_step_10_type_scaled_weight_10_seed_0",
@@ -55,13 +55,13 @@ def evaluate_violation_car():
     #     # "car_constrained_step_500_type_scaled_weight_1_seed_0"
     # ]
 
-    # # Diffusion
+    # # # TODO Diffusion
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/input_obs_output_time_control_obj_12_data_114k"
     #
     # data_type_list = [
     #     "input_obs_output_time_control_obj_12_data_114k_seed_0",
-    #     # "input_obs_output_time_control_obj_12_data_114k_seed_1",
-    #     # "input_obs_output_time_control_obj_12_data_114k_seed_2",
+    #     "input_obs_output_time_control_obj_12_data_114k_seed_1",
+    #     "input_obs_output_time_control_obj_12_data_114k_seed_2",
     # ]
 
     # # cvae lstm
@@ -88,31 +88,40 @@ def evaluate_violation_car():
     #     # "car_constraint_gt_scaled_weight_01_seed_0",
     #     # "car_constraint_gt_std_absolute_weight_1_seed_0",
     #     # "car_constraint_gt_std_threshold_weight_1_seed_0",
-    #     # "car_constraint_gt_std_weight_1_seed_0",
+    #     "car_constraint_gt_std_weight_1_seed_0",
     #     # "car_constraint_one_over_t_weight_01_seed_0",
     #     # "car_constraint_gt_std_absolute_weight_01_seed_0",
     #     # "car_constraint_gt_std_threshold_weight_01_seed_0",
-    #     "car_constraint_gt_std_weight_01_seed_0",
+    #     # "car_constraint_gt_std_weight_01_seed_0",
     #     # "car_constraint_gt_log_likelihood_weight_01_seed_0"
     # ]
     # data_type_list = [
-    #     "car_constraint_pred_x0_one_over_t_weight_01_seed_0",
-    #     # "car_constraint_pred_x0_weight_0001_seed_0"
+    #     # "car_constraint_pred_x0_one_over_t_weight_01_seed_0",
+    #     "car_constraint_pred_x0_weight_0001_seed_0"
+    # ]
+    # data_type_list = [
+    #     # "car_experiment_gt_scaled_schedule_NA_normalize_-1_-1_var_max_sample_100_weight_1_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_NA_normalize_-1_-1_var_max_sample_500_weight_01_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_one_over_t_normalize_-1_-1_var_max_sample_500_weight_10_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_-1_-1_var_max_sample_500_weight_1_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+    #     # "car_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+    #     # "car_experiment_vanilla_schedule_NA_normalize_-1_-1_var_max_sample_100_weight_001_seed_0",
+    #     # "car_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
+    #     # "car_experiment_vanilla_schedule_one_over_t_normalize_-1_-1_var_max_sample_500_weight_01_seed_0",
+    #     # "car_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_-1_-1_var_max_sample_500_weight_0001_seed_0",
+    #     "car_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
     # ]
     data_type_list = [
-        "car_experiment_gt_scaled_schedule_NA_normalize_-1_-1_var_max_sample_100_weight_1_seed_0",
-        "car_experiment_gt_scaled_schedule_NA_normalize_-1_-1_var_max_sample_500_weight_01_seed_0",
-        "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
-        "car_experiment_gt_scaled_schedule_one_over_t_normalize_-1_-1_var_max_sample_500_weight_10_seed_0",
-        "car_experiment_gt_scaled_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
-        "car_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_-1_-1_var_max_sample_500_weight_1_seed_0",
-        "car_experiment_gt_scaled_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
-        "car_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
-        "car_experiment_vanilla_schedule_NA_normalize_-1_-1_var_max_sample_100_weight_001_seed_0",
-        "car_experiment_vanilla_schedule_NA_normalize_direct_clip_max_sample_100_weight_001_seed_0",
-        "car_experiment_vanilla_schedule_one_over_t_normalize_-1_-1_var_max_sample_500_weight_01_seed_0",
-        "car_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_-1_-1_var_max_sample_500_weight_0001_seed_0",
-        "car_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
+        "car_experiment_gt_log_likelihood_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        # "car_experiment_gt_log_likelihood_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "car_experiment_gt_log_likelihood_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+        # "car_experiment_gt_std_schedule_NA_normalize_direct_clip_max_sample_100_weight_10_seed_0",
+        # "car_experiment_gt_std_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+        # "car_experiment_gt_std_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+        # "car_experiment_predict_x0_violation_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
     ]
 
     for i in range(len(data_type_list)):
