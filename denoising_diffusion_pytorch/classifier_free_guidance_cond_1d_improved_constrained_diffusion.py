@@ -977,6 +977,7 @@ class GaussianDiffusion1D(nn.Module):
         else:
             ##############################################################################################################
             if self.constraint_loss_type == "predict_x0_violation":
+
                 predicted_noise = model_out
                 x_start_predicted = self.predict_start_from_noise(x_t, t, predicted_noise)
 
@@ -1156,8 +1157,6 @@ class GaussianDiffusion1D(nn.Module):
         # Apply the mask to the violation_loss_final_use
         masked_violation_loss = violation_loss_final_use * mask
 
-        breakpoint()
-
         violation_loss_final_use_mean = torch.mean(masked_violation_loss)
 
         coef = torch.tensor(self.constraint_violation_weight)
@@ -1168,9 +1167,7 @@ class GaussianDiffusion1D(nn.Module):
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
 
         loss = loss * extract(self.loss_weight, t, loss.shape)
-
-
-        print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
+        # print(f"violation_loss_final_use_mean {violation_loss_final_use_mean}")
         return loss.mean() + coef * violation_loss_final_use_mean
 
     def plot_constraint_violation(self, to_clip, t, x_start, noise, classes):
