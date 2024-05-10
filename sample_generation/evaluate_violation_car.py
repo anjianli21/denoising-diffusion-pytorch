@@ -114,14 +114,21 @@ def evaluate_violation_car():
     #     # "car_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_-1_-1_var_max_sample_500_weight_0001_seed_0",
     #     "car_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
     # ]
+    # data_type_list = [
+    #     "car_experiment_gt_log_likelihood_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+    #     # "car_experiment_gt_log_likelihood_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+    #     # "car_experiment_gt_log_likelihood_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+    #     # "car_experiment_gt_std_schedule_NA_normalize_direct_clip_max_sample_100_weight_10_seed_0",
+    #     # "car_experiment_gt_std_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
+    #     # "car_experiment_gt_std_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
+    #     # "car_experiment_predict_x0_violation_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
+    # ]
+
+    # TODO: pred_x0, constrained diffusion
     data_type_list = [
-        "car_experiment_gt_log_likelihood_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
-        # "car_experiment_gt_log_likelihood_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
-        # "car_experiment_gt_log_likelihood_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
-        # "car_experiment_gt_std_schedule_NA_normalize_direct_clip_max_sample_100_weight_10_seed_0",
-        # "car_experiment_gt_std_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_10_seed_0",
-        # "car_experiment_gt_std_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_1_seed_0",
-        # "car_experiment_predict_x0_violation_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_0001_seed_0"
+        "car_constraint_pred_x0_one_over_t_weight_01_seed_0",
+        "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+        "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_2"
     ]
 
     for i in range(len(data_type_list)):
