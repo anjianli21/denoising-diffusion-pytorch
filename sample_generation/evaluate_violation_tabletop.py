@@ -169,7 +169,7 @@ def evaluate_violation_car():
     #     "tabletopv2_experiment_vanilla_schedule_sqrt_bar_alpha_normalize_direct_clip_max_sample_500_weight_01_seed_0",
     # ]
 
-    # TODO: pred x0 constrained diffusion
+    # TODO: NeurIPS, pred x0 constrained diffusion
     data_type_list = [
         # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_01_seed_0",
         # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_01_seed_1",
@@ -178,6 +178,16 @@ def evaluate_violation_car():
         "tabletopv2_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_1_seed_1",
         "tabletopv2_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_1_seed_2",
     ]
+
+    # TODO: DDDAS, gt scaled, constrained diffusion
+    data_type_list = [
+        "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
+        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+    ]
+
+
     data_parent_path_list = [f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}" for data_type in data_type_list]
 
     # # local optimal
