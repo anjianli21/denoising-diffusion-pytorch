@@ -519,7 +519,7 @@ class Unet1D(nn.Module):
             classes_emb = torch.where(
                 rearrange(keep_mask, 'b -> b 1'),
                 classes,
-                torch.tensor(self.mask_val).cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
+                torch.tensor(self.mask_val).to("mps")#.cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
             )
             # TODO: embed the class to the conditional variable c
             c = self.classes_mlp(classes_emb)
@@ -578,7 +578,7 @@ def linear_beta_schedule(timesteps):
     scale = 1000 / timesteps
     beta_start = scale * 0.0001
     beta_end = scale * 0.02
-    return torch.linspace(beta_start, beta_end, timesteps, dtype=torch.float64)
+    return torch.linspace(beta_start, beta_end, timesteps, dtype=torch.float32) #THIS WAS float64 before
 
 
 def cosine_beta_schedule(timesteps, s=0.008):
@@ -587,7 +587,7 @@ def cosine_beta_schedule(timesteps, s=0.008):
     as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
     """
     steps = timesteps + 1
-    x = torch.linspace(0, timesteps, steps, dtype=torch.float64)
+    x = torch.linspace(0, timesteps, steps, dtype=torch.float32)   #THIS WAS float64 before
     alphas_cumprod = torch.cos(((x / timesteps) + s) / (1 + s) * math.pi * 0.5) ** 2
     alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
     betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
@@ -811,8 +811,7 @@ class GaussianDiffusion1D(nn.Module):
 
     @torch.no_grad()
     def ddim_sample(self, classes, shape, cond_scale=6., rescaled_phi=0.7, clip_denoised=True):
-        batch, device, total_timesteps, sampling_timesteps, eta, objective = shape[
-                                                                                 0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
+        batch, device, total_timesteps, sampling_timesteps, eta, objective = shape[0], self.betas.device, self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
 
         times = torch.linspace(-1, total_timesteps - 1,
                                steps=sampling_timesteps + 1)  # [-1, 0, 1, 2, ..., T-1] when sampling_timesteps == total_timesteps
