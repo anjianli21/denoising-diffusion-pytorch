@@ -19,5 +19,5 @@ def generate_bash_script(directory):
 
 
 # Change the directory path as needed
-directory_path = 'run/della/dddas/car/0507/'
+directory_path = 'run/della/dddas/car/0520/'
 generate_bash_script(directory_path)

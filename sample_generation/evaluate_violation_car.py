@@ -55,7 +55,7 @@ def evaluate_violation_car():
     #     # "car_constrained_step_500_type_scaled_weight_1_seed_0"
     # ]
 
-    # # # TODO Diffusion
+    # # # # TODO Diffusion
     # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/input_obs_output_time_control_obj_12_data_114k"
     #
     # data_type_list = [
@@ -73,17 +73,16 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_1",
     # ]
 
-    # # uniform
-    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/uniform"
-    #
-    # data_type_list = [
-    #     "uniform",
-    #     "uniform_seed_1",
-    #     "uniform_seed_2",
-    # ]
+    # uniform
+    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car/uniform"
+
+    data_type_list = [
+        "uniform",
+        "uniform_seed_1",
+        "uniform_seed_2",
+    ]
 
     # # TODO: DDDAS
-    data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
     # data_type_list = [
     #     # "car_constraint_gt_scaled_weight_01_seed_0",
     #     # "car_constraint_gt_std_absolute_weight_1_seed_0",
@@ -131,20 +130,22 @@ def evaluate_violation_car():
     #     "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_2"
     # ]
 
-    # TODO: DDDAS, gt scaled, constrained diffusion
-    data_type_list = [
-        # "car_constraint_gt_scaled_weight_01_seed_0",
-        # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
-        # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
-        "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
-        "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
-        "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
-    ]
+    # # TODO: DDDAS, gt scaled, constrained diffusion
+    # data_type_list = [
+    #     "car_constraint_gt_scaled_weight_01_seed_0",
+    #     "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+    #     "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
+    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
+    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
+    # ]
+    # data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
+
 
     for i in range(len(data_type_list)):
         data_type = data_type_list[i]
-        data_path = f"{data_parent_path}/{data_type}/{data_type}_num_{num}.pkl"
-        # data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
+        # data_path = f"{data_parent_path}/{data_type}/{data_type}_num_{num}.pkl"
+        data_path = f"{data_parent_path}/{data_type}_num_{num}.pkl"
 
 
         with open(data_path, 'rb') as f:

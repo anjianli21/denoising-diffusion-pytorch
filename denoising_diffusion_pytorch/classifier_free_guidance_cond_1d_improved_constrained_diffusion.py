@@ -926,7 +926,7 @@ class GaussianDiffusion1D(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
         # TODO: plot the violation loss for each t ####################################################################
-        to_plot = False
+        to_plot = True
         to_clip = True
         if to_plot:
             self.plot_constraint_violation(to_clip=to_clip, t=t, x_start=x_start,
@@ -1259,64 +1259,80 @@ class GaussianDiffusion1D(nn.Module):
         # Generate a time range corresponding to the indices of the list
         time_values = list(range(len(violation_mean_scalar_values)))
 
-        # Plotting the data
-        plt.figure(figsize=(10, 5))
-        plt.plot(time_values, violation_mean_scalar_values, marker='o', linestyle='-', color='b')
-        if to_clip:
-            plt.title(f'Violation mean - Sampling Time, Clip, {self.task_type}')
-        else:
-            plt.title(f'Violation mean - Sampling Time, no clipping, {self.task_type}')
-        plt.xlabel('Time')
-        plt.ylabel('Violation Value')
-        plt.grid(True)
-        if self.task_type == "car":
-            plt.ylim(0, 900)
-        elif self.task_type == "tabletop":
-            plt.ylim(0, 50)
+        # # Plotting the violation mean
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(time_values, violation_mean_scalar_values, marker='o', linestyle='-', color='b')
+        # if to_clip:
+        #     plt.title(f'Violation mean - Sampling Time, Clip, {self.task_type}')
+        # else:
+        #     plt.title(f'Violation mean - Sampling Time, no clipping, {self.task_type}')
+        # plt.xlabel('Time')
+        # plt.ylabel('Violation Value')
+        # plt.grid(True)
+        # if self.task_type == "car":
+        #     plt.ylim(0, 900)
+        # elif self.task_type == "tabletop":
+        #     plt.ylim(0, 50)
+        #
+        # # Plot violation sigma
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(time_values, violation_sigma_scalar_values, marker='o', linestyle='-', color='b')
+        # if to_clip:
+        #     plt.title(f'Violation sigma - Sampling step, Clip, {self.task_type}')
+        # else:
+        #     plt.title(f'Violation sigma - Sampling step, no clipping, {self.task_type}')
+        # plt.xlabel('Time')
+        # plt.ylabel('Violation sigma')
+        # plt.grid(True)
+        # if self.task_type == "car":
+        #     plt.ylim(0, 600)
+        # elif self.task_type == "tabletop":
+        #     plt.ylim(0, 50)
+        # plt.show()
+        #
+        # # 95% confidence plot for the gt vs nn violation
+        # plt.figure(figsize=(10, 5))
+        # self.plot_confidence_intervel(violation_value_list, data_type="GT", task_type=self.task_type)
+        # self.plot_confidence_intervel(nn_violation_value_list, data_type="NN", task_type=self.task_type)
+        # plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
+        # plt.xlabel('Sampling Step')
+        # plt.ylabel('Violation Value')
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
+        #
+        # # 95% confidence plot for the nn violation
+        # plt.figure(figsize=(10, 5))
+        # self.plot_confidence_intervel(nn_violation_value_list, data_type="NN", task_type=self.task_type)
+        # plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
+        # plt.xlabel('Sampling Step')
+        # plt.ylabel('Violation Value')
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
+        #
+        # # 95% confidence plot for the pred_x0 violation
+        # plt.figure(figsize=(10, 5))
+        # self.plot_confidence_intervel(pred_x0_violation_value_list, data_type="pred_x0", task_type=self.task_type)
+        # plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
+        # plt.xlabel('Sampling Step')
+        # plt.ylabel('Violation Value')
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
 
-        plt.figure(figsize=(10, 5))
-        plt.plot(time_values, violation_sigma_scalar_values, marker='o', linestyle='-', color='b')
-        if to_clip:
-            plt.title(f'Violation sigma - Sampling step, Clip, {self.task_type}')
-        else:
-            plt.title(f'Violation sigma - Sampling step, no clipping, {self.task_type}')
-        plt.xlabel('Time')
-        plt.ylabel('Violation sigma')
-        plt.grid(True)
-        if self.task_type == "car":
-            plt.ylim(0, 600)
-        elif self.task_type == "tabletop":
-            plt.ylim(0, 50)
-        plt.show()
-
-        # 95% confidence plot for the gt vs nn violation
+        # 95% confidence plot for the gt violation
         plt.figure(figsize=(10, 5))
         self.plot_confidence_intervel(violation_value_list, data_type="GT", task_type=self.task_type)
-        self.plot_confidence_intervel(nn_violation_value_list, data_type="NN", task_type=self.task_type)
-        plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
-        plt.xlabel('Sampling Step')
-        plt.ylabel('Violation Value')
-        plt.legend()
-        plt.grid()
-        plt.show()
-
-        # 95% confidence plot for the nn violation
-        plt.figure(figsize=(10, 5))
-        self.plot_confidence_intervel(nn_violation_value_list, data_type="NN", task_type=self.task_type)
-        plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
-        plt.xlabel('Sampling Step')
-        plt.ylabel('Violation Value')
-        plt.legend()
-        plt.grid()
-        plt.show()
-
-        # 95% confidence plot for the pred_x0 violation
-        plt.figure(figsize=(10, 5))
-        self.plot_confidence_intervel(pred_x0_violation_value_list, data_type="pred_x0", task_type=self.task_type)
-        plt.title(f'{self.task_type}: Mean Violation Values with 95% Confidence Interval Over Sampling Steps')
-        plt.xlabel('Sampling Step')
-        plt.ylabel('Violation Value')
-        plt.legend()
+        if self.task_type == "car":
+            plt.title(f'Car: Mean Violation Values Over Sampling Steps', fontsize=20)
+        elif self.task_type == "tabletop":
+            plt.title(f'Tabletop: Mean Violation Values Over Sampling Steps', fontsize=20)
+        plt.xlabel('Sampling Step', fontsize=20)
+        plt.ylabel('Violation Value', fontsize=20)
+        plt.legend(fontsize=20)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.grid()
         plt.show()
 

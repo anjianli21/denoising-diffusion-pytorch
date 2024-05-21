@@ -140,8 +140,10 @@ def main():
         # "tabletopv2_experiment_predict_x0_violation_schedule_NA_normalize_direct_clip_max_sample_100_weight_01_seed_2",
         # "tabletopv2_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_1_seed_1",
         # "tabletopv2_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_1_seed_2",
-        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
-        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
+        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
+        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
     ]
 
     # Configure path ##############################################################################################
@@ -149,8 +151,8 @@ def main():
     # parent_path = f"results/dddas/tabletop_v2"
     # parent_path = f"results/dddas/tabletop_v2/0429"
     # parent_path = f"results/dddas/tabletop_v2/0505"
-    parent_path = f"results/dddas/tabletop_v2/0507"
-
+    # parent_path = f"results/dddas/tabletop_v2/0507"
+    parent_path = f"results/dddas/tabletop_v2/0513"
 
     # input_obs_goal_output_time_control_parent_path_list = [
     #     f"{parent_path}/full_data_202k_constraint_weight_0.01_condscale_6_seed_0",
