@@ -926,7 +926,7 @@ class GaussianDiffusion1D(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
         # TODO: plot the violation loss for each t ####################################################################
-        to_plot = True
+        to_plot = False
         to_clip = True
         if to_plot:
             self.plot_constraint_violation(to_clip=to_clip, t=t, x_start=x_start,
