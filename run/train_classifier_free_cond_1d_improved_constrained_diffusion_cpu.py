@@ -18,7 +18,7 @@ import argparse
 # Version Jannik
 
 def main():
-    #torch.set_default_device('cpu')
+    torch.set_default_device('cpu')
     ####################################################################################################################
     # Parse the arguments
     args = parse_args()
@@ -161,7 +161,7 @@ def main():
         train_num_steps=step_per_epoch * max_epoch,  # total training steps
         gradient_accumulate_every=2,  # gradient accumulation steps
         ema_decay=0.995,  # exponential moving average decay
-        amp=True,  # turn on mixed precision #WAS TURNED ON BEFORE
+        amp=False,  # turn on mixed precision #WAS TURNED ON BEFORE
         results_folder=checkpoint_folder,
         num_workers=num_workers,
         wandb_project_name=wandb_project_name,
@@ -173,7 +173,7 @@ def main():
 
     # do above for many steps
     sampled_seq = diffusion.sample(
-        classes=training_seq_classes[:10, :].cuda(), #This was not commented
+        classes=training_seq_classes[:10, :],#.cuda(), This was not commented
         cond_scale=6.,
         # condition scaling, anything greater than 1 strengthens the classifier free guidance. reportedly 3-8 is good empirically
     )
