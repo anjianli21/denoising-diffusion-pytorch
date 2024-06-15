@@ -1159,7 +1159,7 @@ class Trainer1D(object):
         #     wandb.login(key=api_key)
         # else:
         #     raise Exception("not api key for wandb")
-        wandb.init(mode="offline")
+        #wandb.init(mode="offline")
         wandb.login()
         hyperparameters = {
             'unet_dim': diffusion_model.model.dim,

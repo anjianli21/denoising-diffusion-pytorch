@@ -69,7 +69,7 @@ def main():
         if task_type == "tabletop":
             os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/tabletop_v2/{training_data_type}", exist_ok=True)
     else:
-        os.makedirs(f"wandb/{task_type}/{training_data_type}", exist_ok=True)
+        os.makedirs(f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/wandb/{task_type}/{training_data_type}", exist_ok=True)
     ####################################################################################################################
     # Build the model
     model = Unet1D(
