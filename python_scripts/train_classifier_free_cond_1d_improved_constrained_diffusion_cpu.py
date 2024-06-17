@@ -196,7 +196,7 @@ def parse_args():
     # Unet 1D parameters
     parser.add_argument('--unet_dim',
                         type=int,
-                        default=128,
+                        default=20,
                         help='Dimension of the first layer of Unet')
     parser.add_argument('--unet_dim_mults',
                         type=str,
@@ -204,7 +204,7 @@ def parse_args():
                         help='List of dimension multipliers for Unet, currently at most 4 layers since we can only downsample 20 dim 4 times.')
     parser.add_argument('--embed_class_layers_dims',
                         type=str,
-                        default="256,512",
+                        default="40,80",
                         help='List of dimension for embedding class layers')
     parser.add_argument('--cond_drop_prob',
                         type=float,
@@ -231,7 +231,7 @@ def parse_args():
                         help='Objectives for the diffusion model')
     parser.add_argument('--seq_length',
                         type=int,
-                        default=66,
+                        default=6,
                         help='length of the data sequence')
 
     # Trainer1D parameters
@@ -241,7 +241,7 @@ def parse_args():
                         help='Batch size for training')
     parser.add_argument('--data_path',
                         type=str,
-                        default="/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/data/boundary/training_data_boundary_26000.pkl",
+                        default="/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/data/indirect/training_data_indirect_270000.pkl",
                         help="cr3bp data path")
     parser.add_argument('--wandb_project_name',
                         type=str,

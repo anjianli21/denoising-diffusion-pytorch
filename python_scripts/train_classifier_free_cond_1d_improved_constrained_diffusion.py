@@ -195,7 +195,7 @@ def parse_args():
     # Unet 1D parameters
     parser.add_argument('--unet_dim',
                         type=int,
-                        default=128,
+                        default=20,
                         help='Dimension of the first layer of Unet')
     parser.add_argument('--unet_dim_mults',
                         type=str,
@@ -203,7 +203,7 @@ def parse_args():
                         help='List of dimension multipliers for Unet, currently at most 4 layers since we can only downsample 20 dim 4 times.')
     parser.add_argument('--embed_class_layers_dims',
                         type=str,
-                        default="256,512",
+                        default="40,80",
                         help='List of dimension for embedding class layers')
     parser.add_argument('--cond_drop_prob',
                         type=float,
@@ -250,7 +250,7 @@ def parse_args():
     # Training data parameters
     parser.add_argument('--class_dim',
                         type=int,
-                        default=6,
+                        default=1,
                         help='Dimension of the class variable')
     parser.add_argument('--training_data_type',
                         type=str,
