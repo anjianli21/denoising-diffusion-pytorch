@@ -38,7 +38,7 @@ def main():
     channel_num = args.channel_num
     seq_length = args.seq_length
     training_data_type = str(args.training_data_type)
-    mask_val = args.mask_val
+    mask_val = float(args.mask_val)
     training_data_range = str(args.training_data_range)
     training_data_num = args.training_data_num
     wandb_project_name = str(args.wandb_project_name)
@@ -244,7 +244,7 @@ def parse_args():
                         help="cr3bp data path")
     parser.add_argument('--wandb_project_name',
                         type=str,
-                        default="diffusion_for_cr3bp_test",
+                        default="diffusion_for_cr3bp",
                         help="project name for wandb")
 
     # Training data parameters

@@ -1145,7 +1145,7 @@ class Trainer1D(object):
             split_batches=True,
             max_grad_norm=1.,
             num_workers=1,
-            wandb_project_name="diffusion_for_cr3bp_test",
+            wandb_project_name="diffusion_for_cr3bp_indirect",
             training_data_range="0_1",
             training_data_num=300000,
             training_random_seed=0
@@ -1188,8 +1188,8 @@ class Trainer1D(object):
         #            f"batch_size: {hyperparameters['batch_size']}, mask_val: {hyperparameters['mask_val']}, " \
         #            f"data_range: {hyperparameters['training_data_range']}, " \
         #            f"data_num: {hyperparameters['training_data_num']}"
-        run_name = f"task_type: {hyperparameters['task_type']}, constraint_loss_type: {hyperparameters['constraint_loss_type']}, " \
-                   f"constraint_violation_weight: {hyperparameters['constraint_violation_weight']}, " \
+        run_name = f"unet_dim: {hyperparameters['unet_dim']}, timesteps: {hyperparameters['timesteps']}, " \
+                   f"embed_class_layers_dims: {hyperparameters['embed_class_layers_dims']}, " \
                    f"training_random_seed: {hyperparameters['training_random_seed']}"
 
         wandb.init(project=wandb_project_name, name=run_name, config=hyperparameters)
