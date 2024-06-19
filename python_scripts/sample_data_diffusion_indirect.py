@@ -21,7 +21,7 @@ def main():
 
     data_num_list = [270000]
 
-    sample_num = 10000
+    sample_num = 1000000
     diffusion_w = 5.0
     thrust = 0.85
     diffusion_type = "diffusion_indirect"

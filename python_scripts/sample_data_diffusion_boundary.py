@@ -21,7 +21,7 @@ def main():
 
     data_num_list = [100000]
 
-    sample_num = 4000
+    sample_num = 10000
     diffusion_w = 5.0
     thrust = 1.0
     num_seg = 20
@@ -87,7 +87,14 @@ def main():
         full_solution[:, 1] = full_solution[:, 1] * (max_coast_time - min_coast_time) + min_coast_time
         full_solution[:, 2] = full_solution[:, 2] * (max_coast_time - min_coast_time) + min_coast_time
         #Convert cartesian control back to correct range, NO CONVERSION TO POLAR
-        full_solution[:, 3:num_seg*3+3] = full_solution[:, 3:num_seg*3+3] * 2 * thrust + thrust * -1.0 * np.ones((sample_num,num_seg*3)) 
+        full_solution[:, 3:-3] = full_solution[:, 3:-3] * 2 * thrust - thrust
+        ux = full_solution[:,3:-3:3]
+        uy = full_solution[:,4:-3:3]
+        uz = full_solution[:,5:-3:3]
+        alpha, beta, r = convert_to_spherical(ux, uy, uz)
+        full_solution[:,3:-3:3] = alpha
+        full_solution[:,4:-3:3] = beta
+        full_solution[:,5:-3:3] = r 
         # Unnormalize fuel mass and manifold parameters, HALO PERIOD IS NOT UNNORMALIZED, NEEDS TO BE DONE IN THE ACTUAL RUN
         full_solution[:, -3] = full_solution[:, -3] * (max_final_fuel_mass - min_final_fuel_mass) + min_final_fuel_mass
         full_solution[:, -1] = full_solution[:, -1] * (max_manifold_length - min_manifold_length) + min_manifold_length
@@ -96,7 +103,7 @@ def main():
         full_solution = np.hstack((halo_energies, full_solution))
 
         if save_warmstart_data:
-            parent_path = "/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/boundary"
+            parent_path = "/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/boundary/unet_128_mults_4_4_8_embed_class_256_12_timesteps_500_batch_size_512_cond_drop_0.1_mask_val_0.0_spher"
             cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}.pkl"
             with open(cr3bp_time_mass_alpha_control_path, "wb") as fp:  # write pickle
                 pickle.dump(full_solution, fp)
@@ -158,6 +165,20 @@ def get_sample_from_diffusion_attention(sample_num,
     sample_results = sample_results.reshape(sample_num, -1)
 
     return sample_results.detach().cpu().numpy()
+
+def convert_to_spherical(ux, uy, uz):
+    u = np.sqrt(ux ** 2 + uy ** 2 + uz ** 2)
+    theta = np.zeros_like(u)
+    mask_non_zero = u != 0
+    theta[mask_non_zero] = np.arcsin(uz[mask_non_zero] / u[mask_non_zero])
+    alpha = np.arctan2(uy, ux)
+    alpha = np.where(alpha >= 0, alpha, 2 * np.pi + alpha)
+
+    # Make sure theta is in [0, 2*pi]
+    theta = np.where(theta >= 0, theta, 2 * np.pi + theta)
+    # Make sure u is not larger than 1
+    u[u>1] = 1
+    return alpha, theta, u
 
 if __name__ == "__main__":
     main()
