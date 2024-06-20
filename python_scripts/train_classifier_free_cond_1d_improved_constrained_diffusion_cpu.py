@@ -196,8 +196,8 @@ def parse_args():
     # Unet 1D parameters
     parser.add_argument('--unet_dim',
                         type=int,
-                        default=20,
-                        help='Dimension of the first layer of Unet')
+                        default=40,
+                        help='Dimension of the first layer of Unet, MUST BE DIVISIBLE BY 4')
     parser.add_argument('--unet_dim_mults',
                         type=str,
                         default="4,4,8",

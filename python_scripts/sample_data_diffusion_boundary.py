@@ -103,7 +103,7 @@ def main():
         full_solution = np.hstack((halo_energies, full_solution))
 
         if save_warmstart_data:
-            parent_path = "/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/boundary/unet_128_mults_4_4_8_embed_class_256_12_timesteps_500_batch_size_512_cond_drop_0.1_mask_val_0.0_spher"
+            parent_path = "/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/boundary/unet_128_mults_4_4_8_embed_class_256_512_timesteps_500_batch_size_512_cond_drop_0.1_mask_val_0.0_spher"
             cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}.pkl"
             with open(cr3bp_time_mass_alpha_control_path, "wb") as fp:  # write pickle
                 pickle.dump(full_solution, fp)

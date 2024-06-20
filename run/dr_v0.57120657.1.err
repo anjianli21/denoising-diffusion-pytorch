@@ -1,0 +1,10 @@
+wandb: WARNING Path /scratch/gpfs/jg3607/Diffusion_model/indirect/sampling/wandb/ wasn't writable, using system temp directory.
+wandb: WARNING Path /scratch/gpfs/jg3607/Diffusion_model/indirect/sampling/wandb/ wasn't writable, using system temp directory
+wandb: Tracking run with wandb version 0.17.1
+wandb: W&B syncing is set to `offline` in this directory.  
+wandb: Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+/home/jg3607/.conda/envs/torch-env/lib/python3.10/site-packages/accelerate/accelerator.py:444: FutureWarning: Passing the following arguments to `Accelerator` is deprecated and will be removed in version 1.0 of Accelerate: dict_keys(['split_batches']). Please pass an `accelerate.DataLoaderConfiguration` instead: 
+dataloader_config = DataLoaderConfiguration(split_batches=True)
+  warnings.warn(
+Detected kernel version 4.18.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+sampling loop time step:   0%|          | 0/100 [00:00<?, ?it/s]sampling loop time step:   1%|          | 1/100 [00:07<12:26,  7.54s/it]sampling loop time step:   2%|▏         | 2/100 [00:14<11:46,  7.21s/it]sampling loop time step:   3%|▎         | 3/100 [00:21<11:29,  7.11s/it]sampling loop time step:   4%|▍         | 4/100 [00:28<11:17,  7.06s/it]

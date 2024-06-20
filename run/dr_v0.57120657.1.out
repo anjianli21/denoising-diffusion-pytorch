@@ -1,0 +1,6 @@
+SLURM_JOBID: 57120657
+SLURM_ARRAY_TASK_ID: 1
+SLURM_ARRAY_JOB_ID: 57120657
+Shape of initted in EMA state dict: torch.Size([1])
+Shape of step in EMA state dict: torch.Size([1])
+loading from version 1.8.11

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=diff_ind_ts_300
-#SBATCH --output=/scratch/gpfs/jg3607/Diffusion_model/indirect/output/dr_v0.%A.%a.out
-#SBATCH --error=/scratch/gpfs/jg3607/Diffusion_model/indirect/output/dr_v0.%A.%a.err
+#SBATCH --output=/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/run/dr_v0.%A.%a.out
+#SBATCH --error=/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/run/dr_v0.%A.%a.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
@@ -24,4 +24,4 @@ module load boost/1.73.0
 export WANDB_DIR="/scratch/gpfs/jg3607/Diffusion_model/indirect/sampling/"
 export WANDB_MODE=offline
 
-python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/sample_data_diffusion_indirect.py 
+python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/sample_data_diffusion_indirect.py --unet_dim 12 --embed_class_layers_dims "40,80" --timesteps 100 --data_num 270000 --sample_num 1000000 --thrust_level 0.85
