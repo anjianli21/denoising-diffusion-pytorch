@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ind_dim_10
+#SBATCH --job-name=ec_56
 #SBATCH --output=/scratch/gpfs/jg3607/Diffusion_model/indirect/output/dr_v0.%A.%a.out
 #SBATCH --error=/scratch/gpfs/jg3607/Diffusion_model/indirect/output/dr_v0.%A.%a.err
 #SBATCH --nodes=1
@@ -24,4 +24,4 @@ module load boost/1.73.0
 export WANDB_DIR="/scratch/gpfs/jg3607/Diffusion_model/indirect"
 export WANDB_MODE=offline
 
-python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/train_classifier_free_cond_1d_improved_constrained_diffusion.py --wandb_project_name "Diffusion indirect" --unet_dim 12 --embed_class_layers_dims "40,80" --timesteps 100 --training_random_seed 0 --result_folder /scratch/gpfs/jg3607/Diffusion_model/indirect/results --data_path /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/data/indirect/training_data_indirect_270000.pkl --max_epoch 200 --class_dim 1 --channel_num 1 --seq_length 6 --batch_size 27000 --constraint_loss_type NA --task_type cr3bp --training_data_type cr3bp_vanilla_diffusion_seed_0 --training_data_num 270000
+python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/train_classifier_free_cond_1d_improved_constrained_diffusion.py --wandb_project_name "Diffusion indirect" --unet_dim 12 --embed_class_layers_dims "56,128" --timesteps 100 --training_random_seed 0 --result_folder /scratch/gpfs/jg3607/Diffusion_model/indirect/results --data_path /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/data/indirect/training_data_indirect_270000.pkl --max_epoch 200 --class_dim 1 --channel_num 1 --seq_length 6 --batch_size 27000 --constraint_loss_type NA --task_type cr3bp --training_data_type cr3bp_vanilla_diffusion_seed_0 --training_data_num 270000

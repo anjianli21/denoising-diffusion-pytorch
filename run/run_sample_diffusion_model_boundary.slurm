@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=diff_bou_sam
-#SBATCH --output=/scratch/gpfs/jg3607/Diffusion_model/boundary/output/dr_v0.%A.%a.out
-#SBATCH --error=/scratch/gpfs/jg3607/Diffusion_model/boundary/output/dr_v0.%A.%a.err
+#SBATCH --output=/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/run/dr_v0.%A.%a.out
+#SBATCH --error=/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/run/dr_v0.%A.%a.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
@@ -24,4 +24,4 @@ module load boost/1.73.0
 export WANDB_DIR="/scratch/gpfs/jg3607/Diffusion_model/boundary/sampling/"
 export WANDB_MODE=offline
 
-python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/sample_data_diffusion_boundary.py 
+python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/sample_data_diffusion_boundary.py --timesteps 500 --data_num 100000 --sample_num 10000 --mask_val "-1.0"
