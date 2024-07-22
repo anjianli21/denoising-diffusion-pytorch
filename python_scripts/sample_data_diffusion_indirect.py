@@ -13,7 +13,7 @@ import argparse
 import re
 from datetime import datetime
 
-def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust):
+def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust,diffusion_w,batch_size):
 
     # For icml
     unet_dim_mults = "4,4,8"
@@ -21,12 +21,11 @@ def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust):
     unet_dim_mults_in_str = "_".join(map(str, unet_dim_mults))
     embed_class_layers_dims = tuple(map(int, embed_class_layers_dims.split(',')))
     embed_class_layers_dims_in_str = "_".join(map(str, embed_class_layers_dims))
-    checkpoint_path = f"/scratch/gpfs/jg3607/Diffusion_model/indirect/results/cr3bp_vanilla_diffusion_seed_0/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_27000_cond_drop_0.1_mask_val_0.0/"
+    checkpoint_path = f"/scratch/gpfs/jg3607/Diffusion_model/indirect/results/cr3bp_vanilla_diffusion_seed_0/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_0.0_train_data_{data_num}/"
 
     folder_name = get_latest_file(checkpoint_path)
     checkpoint_path = checkpoint_path + folder_name
     milestone = get_milestone_string(checkpoint_path)
-    diffusion_w = 5.0
     diffusion_type = "diffusion_indirect"
 
     save_warmstart_data = True
@@ -79,11 +78,11 @@ def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust):
     # Add 0 z costates
     full_solution = np.insert(full_solution,5,np.zeros(sample_num),axis=1)
     full_solution = np.insert(full_solution,8,np.zeros(sample_num),axis=1)
-    # Add mass costate -1
+    # Add mass costate -1   
     full_solution = np.insert(full_solution,9,-np.ones(sample_num),axis=1)
 
     if save_warmstart_data:
-        parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/indirect/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_27000_cond_drop_0.1_mask_val_0.0"
+        parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/indirect/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_0.0"
         os.makedirs(parent_path, exist_ok=True)
         cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_thrust_{thrust}_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}.pkl"
         with open(cr3bp_time_mass_alpha_control_path, "wb") as fp:  # write pickle
@@ -196,11 +195,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for diffusion models")
     parser.add_argument('--unet_dim',
                         type=int,
-                        default=20,
+                        default=64,
                         help='Dimension of the first layer of Unet')
     parser.add_argument('--embed_class_layers_dims',
                         type=str,
-                        default="40,80",
+                        default="128,256",
                         help='List of dimension for embedding class layers')
     parser.add_argument('--timesteps',
                         type=str,
@@ -212,12 +211,20 @@ if __name__ == "__main__":
                         help='Number of Training Data')
     parser.add_argument('--sample_num',
                         type=str,
-                        default="1000000",
+                        default="10000",
                         help='Number of Diffusion timesteps')
     parser.add_argument('--thrust_level',
                         type=str,
                         default="0.85",
                         help='Level of the thrust')
+    parser.add_argument('--diffusion_w',
+                        type=str,
+                        default="1.0",
+                        help='w parameter for classifier free guidance sampling')
+    parser.add_argument('--batch_size',
+                        type=str,
+                        default="1024",
+                        help='batch size that was used for diffusion model training')
     
     args = parser.parse_args()
 
@@ -228,5 +235,7 @@ if __name__ == "__main__":
     data_num = int(args.data_num)
     sample_num = int(args.sample_num)
     thrust = float(args.thrust_level)
+    diffusion_w = float(args.diffusion_w)
+    batch_size = int(args.batch_size)
     
-    main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust)
+    main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust,diffusion_w,batch_size)

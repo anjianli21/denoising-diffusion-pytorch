@@ -1,8 +1,0 @@
-wandb: Tracking run with wandb version 0.17.1
-wandb: W&B syncing is set to `offline` in this directory.  
-wandb: Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
-/home/jg3607/.conda/envs/torch-env/lib/python3.10/site-packages/accelerate/accelerator.py:444: FutureWarning: Passing the following arguments to `Accelerator` is deprecated and will be removed in version 1.0 of Accelerate: dict_keys(['split_batches']). Please pass an `accelerate.DataLoaderConfiguration` instead: 
-dataloader_config = DataLoaderConfiguration(split_batches=True)
-  warnings.warn(
-Detected kernel version 4.18.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
-sampling loop time step:   0%|          | 0/500 [00:00<?, ?it/s]sampling loop time step:   0%|          | 1/500 [00:01<13:37,  1.64s/it]sampling loop time step:   0%|          | 2/500 [00:02<11:51,  1.43s/it]sampling loop time step:   1%|          | 3/500 [00:04<11:16,  1.36s/it]sampling loop time step:   1%|          | 4/500 [00:05<10:59,  1.33s/it]sampling loop time step:   1%|          | 5/500 [00:06<10:50,  1.31s/it]sampling loop time step:   1%|          | 6/500 [00:08<10:44,  1.30s/it]sampling loop time step:   1%|▏         | 7/500 [00:09<10:39,  1.30s/it]sampling loop time step:   2%|▏         | 8/500 [00:10<10:37,  1.30s/it]sampling loop time step:   2%|▏         | 9/500 [00:11<10:34,  1.29s/it]sampling loop time step:   2%|▏         | 10/500 [00:13<10:32,  1.29s/it]

@@ -524,7 +524,7 @@ class Unet1D(nn.Module):
             classes_emb = torch.where(
                 rearrange(keep_mask, 'b -> b 1'),
                 classes,
-                torch.tensor(self.mask_val).cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
+                    torch.tensor(self.mask_val).cuda()  # TODO, when not keeping mask, using null_classes_emb to fill in
             )
             # TODO: embed the class to the conditional variable c
             c = self.classes_mlp(classes_emb)

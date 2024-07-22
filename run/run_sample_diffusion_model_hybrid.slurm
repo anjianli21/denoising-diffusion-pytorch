@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=a1.0diff_bou_sam
+#SBATCH --job-name=a0.05
 #SBATCH --output=/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/run/dr_v0.%A.%a.out
 #SBATCH --error=/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/run/dr_v0.%A.%a.err
 #SBATCH --nodes=1
@@ -21,7 +21,7 @@ module load anaconda3/2022.5
 conda activate torch-env
 module load boost/1.73.0 
 
-export WANDB_DIR="/scratch/gpfs/jg3607/Diffusion_model/boundary/sampling/"
+export WANDB_DIR="/scratch/gpfs/jg3607/Diffusion_model/hybrid/sampling/"
 export WANDB_MODE=offline
 
-python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/sample_data_diffusion_boundary.py --timesteps 500 --data_num 100000 --sample_num 10000 --mask_val "-1.0" --fixed_alpha 1.0
+python /home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts/sample_data_diffusion_hybrid.py --diffusion_w 0.8 --timesteps 500 --data_num 165000 --sample_num 1000 --classifier 0.05

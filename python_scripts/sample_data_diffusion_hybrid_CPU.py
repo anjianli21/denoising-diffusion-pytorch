@@ -1,53 +1,44 @@
-import sys
 import time
-
-#sys.path.append('/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts')
-
-#from models import *  # TODO, import CVAE models and lstm models, from '/home/anjian/Desktop/project/generative_trajectory_optimization'
-from classifier_free_guidance_cond_1d_improved_constrained_diffusion import Unet1D, GaussianDiffusion1D, Trainer1D
+from classifier_free_guidance_cond_1d_improved_constrained_diffusion_cpu import Unet1D, GaussianDiffusion1D, Trainer1D
 
 import numpy as np
 import pickle
 import torch
+import os
 import argparse
 import re
-import os
 from datetime import datetime
 
+def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,classifier,diffusion_w,batch_size):
 
-def main(timesteps,data_num,sample_num,mask_val,fixed_alpha):
-    
-    unet_dim = 128 #20 #128
+    # For icml
     unet_dim_mults = "4,4,8"
     unet_dim_mults = tuple(map(int, unet_dim_mults.split(',')))
     unet_dim_mults_in_str = "_".join(map(str, unet_dim_mults))
-    embed_class_layers_dims = "256,512" #"40,80"
     embed_class_layers_dims = tuple(map(int, embed_class_layers_dims.split(',')))
     embed_class_layers_dims_in_str = "_".join(map(str, embed_class_layers_dims))
-    checkpoint_path = f"/scratch/gpfs/jg3607/Diffusion_model/boundary/results/cr3bp_vanilla_diffusion_seed_0/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_512_cond_drop_0.1_mask_val_{mask_val}/"
+    checkpoint_path = f"/scratch/gpfs/jg3607/Diffusion_model/hybrid/results/cr3bp_vanilla_diffusion_seed_0/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_-1.0_train_data_{data_num}/"
 
     folder_name = get_latest_file(checkpoint_path)
     checkpoint_path = checkpoint_path + folder_name
     milestone = get_milestone_string(checkpoint_path)
-
-    diffusion_w = 5.0
-    thrust = 1.0
-    diffusion_type = "diffusion_boundary"
+    diffusion_type = "diffusion_hybrid"
 
     save_warmstart_data = True
 
     objective = "pred_noise"
+    mask_val = -1.0
+    thrust = 1.0
+
     class_dim = 1
     channel = 1
-    seq_length = 66
+    seq_length = 64
     cond_drop_prob = 0.1
 
-    # Randomly sample halo energy
-    if fixed_alpha:
-        alpha_data_normalized = torch.full(size=(sample_num, 1), fill_value=fixed_alpha, dtype=torch.float32)
-    else:
-        torch.manual_seed(1000000)
-        alpha_data_normalized = torch.rand(size=(sample_num, 1), dtype=torch.float32)
+    # Configure input data
+    thrust_normalized = classifier
+
+    alpha_data_normalized = thrust_normalized * torch.ones(size=(sample_num, 1), dtype=torch.float32)
 
     full_solution = get_sample_from_diffusion_attention(sample_num=sample_num,
                                                                             class_dim=class_dim,
@@ -68,46 +59,76 @@ def main(timesteps,data_num,sample_num,mask_val,fixed_alpha):
     # Data preparation #######################################################################################################
     min_shooting_time = 0
     max_shooting_time = 40
+
     min_coast_time = 0
     max_coast_time = 15
-    min_halo_energy = 0.008
-    max_halo_energy = 0.095
-    min_final_fuel_mass = 408 #700-292 => cut off value at 90%
-    max_final_fuel_mass = 470
-    min_manifold_length = 5
-    max_manifold_length = 11
-
+    
+    min_final_fuel_mass = 0.0 #cannot set this higher because some min time solutions use up all the fuel
+    max_final_fuel_mass = 452 #fuel mass at end of GTO spiral
 
     # Unnormalize times
     full_solution[:, 0] = full_solution[:, 0] * (max_shooting_time - min_shooting_time) + min_shooting_time
     full_solution[:, 1] = full_solution[:, 1] * (max_coast_time - min_coast_time) + min_coast_time
     full_solution[:, 2] = full_solution[:, 2] * (max_coast_time - min_coast_time) + min_coast_time
-    #Convert cartesian control back to correct range, NO CONVERSION TO POLAR
+    #Convert cartesian control back to correct range
     full_solution[:, 3:-3] = full_solution[:, 3:-3] * 2 * thrust - thrust
-    ux = full_solution[:,3:-3:3]
-    uy = full_solution[:,4:-3:3]
-    uz = full_solution[:,5:-3:3]
-    alpha, beta, r = convert_to_spherical(ux, uy, uz)
-    full_solution[:,3:-3:3] = alpha
-    full_solution[:,4:-3:3] = beta
-    full_solution[:,5:-3:3] = r 
-    # Unnormalize fuel mass and manifold parameters, HALO PERIOD IS NOT UNNORMALIZED, NEEDS TO BE DONE IN THE ACTUAL RUN
-    full_solution[:, -3] = full_solution[:, -3] * (max_final_fuel_mass - min_final_fuel_mass) + min_final_fuel_mass
-    full_solution[:, -1] = full_solution[:, -1] * (max_manifold_length - min_manifold_length) + min_manifold_length
-    # Unnormalize halo energy
-    halo_energies = alpha_data_normalized.detach().cpu().numpy() * (max_halo_energy - min_halo_energy) + min_halo_energy
-    full_solution = np.hstack((halo_energies, full_solution))
+    #ux = full_solution[:,3:-3:3]
+    #uy = full_solution[:,4:-3:3]
+    #uz = full_solution[:,5:-3:3]
+    #alpha, beta, r = convert_to_spherical(ux, uy, uz)
+    #full_solution[:,3:-3:3] = alpha
+    #full_solution[:,4:-3:3] = beta
+    #full_solution[:,5:-3:3] = r 
+    # Unnormalize fuel mass and manifold parameters
+    full_solution[:, -1] = full_solution[:, -1] * (max_final_fuel_mass - min_final_fuel_mass) + min_final_fuel_mass
+    full_solution = revert_converted_u_data(full_solution)
 
     if save_warmstart_data:
         parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/boundary/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_512_cond_drop_0.1_mask_val_{mask_val}"
         os.makedirs(parent_path, exist_ok=True)
-        if fixed_alpha:
-            cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}_alpha_{fixed_alpha}.pkl"
-        else:
-            cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}.pkl"
+        cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}_alpha_{classifier}.pkl"
         with open(cr3bp_time_mass_alpha_control_path, "wb") as fp:  # write pickle
             pickle.dump(full_solution, fp)
             print(f"{cr3bp_time_mass_alpha_control_path} is saved!")
+
+def convert_to_spherical(ux, uy, uz):
+    u = np.sqrt(ux ** 2 + uy ** 2 + uz ** 2)
+    theta = np.zeros_like(u)
+    mask_non_zero = u != 0
+    theta[mask_non_zero] = np.arcsin(uz[mask_non_zero] / u[mask_non_zero])
+    alpha = np.arctan2(uy, ux)
+    alpha = np.where(alpha >= 0, alpha, 2 * np.pi + alpha)
+
+    # Make sure theta is in [0, 2*pi]
+    theta = np.where(theta >= 0, theta, 2 * np.pi + theta)
+    u[u>1] = 1
+    return alpha, theta, u
+
+def revert_converted_u_data(converted_u_data):
+    # TODO: this function does 2 things:
+    #  1) Convert ux uy uz from [-1, 1] to theta, psi,
+    #  2) convert the second half order from correct order to reverse
+
+    n = converted_u_data.shape[0]  # number of data points
+    time_data = converted_u_data[:, :3]
+    mass_data = converted_u_data[:, -1].reshape(n, 1)
+    control_data = converted_u_data[:, 3:-1].reshape(n, 20, 3)
+
+    # Convert Cartesian coordinates to spherical coordinates
+    for i in range(control_data.shape[1]):
+        alpha, theta, u = convert_to_spherical(control_data[:, i, 0], control_data[:, i, 1], control_data[:, i, 2])
+        control_data[:, i, 0] = alpha
+        control_data[:, i, 1] = theta
+        control_data[:, i, 2] = u
+
+    # Revert the order of the second half of the segments
+    control_data[:, int(20 / 2):] = np.flip(control_data[:, int(20 / 2):], axis=1)
+
+    # Flatten the control data and stack with time_data and mass_data
+    control_data = control_data.reshape(n, -1)
+    data_total = np.hstack((time_data, control_data, mass_data))
+
+    return data_total
 
 def get_milestone_string(folder_path):
     # List all files in the folder
@@ -186,7 +207,7 @@ def get_sample_from_diffusion_attention(sample_num,
         seq_length=seq_length,
         timesteps=timesteps,
         objective=objective
-    ).cuda()
+    )#.cuda()
 
     trainer = Trainer1D(
         diffusion_model=diffusion,
@@ -201,7 +222,7 @@ def get_sample_from_diffusion_attention(sample_num,
     # 3. Use the loaded model for sampling
     start_time = time.time()
     sample_results = diffusion.sample(
-        classes=condition_input_data.cuda(),
+        classes=condition_input_data,#.cuda(),
         cond_scale=diffusion_w,
     )
     end_time = time.time()
@@ -211,49 +232,51 @@ def get_sample_from_diffusion_attention(sample_num,
 
     return sample_results.detach().cpu().numpy()
 
-def convert_to_spherical(ux, uy, uz):
-    u = np.sqrt(ux ** 2 + uy ** 2 + uz ** 2)
-    theta = np.zeros_like(u)
-    mask_non_zero = u != 0
-    theta[mask_non_zero] = np.arcsin(uz[mask_non_zero] / u[mask_non_zero])
-    alpha = np.arctan2(uy, ux)
-    alpha = np.where(alpha >= 0, alpha, 2 * np.pi + alpha)
-
-    # Make sure theta is in [0, 2*pi]
-    theta = np.where(theta >= 0, theta, 2 * np.pi + theta)
-    # Make sure u is not larger than 1
-    u[u>1] = 1
-    return alpha, theta, u
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for diffusion models")
-    parser.add_argument('--mask_val',
-                        type=str,
-                        default=-1.0,
-                        help='Mask value for unconditional data generation')
-    parser.add_argument('--timesteps',
+    parser.add_argument('--unet_dim',
                         type=int,
+                        default=128,
+                        help='Dimension of the first layer of Unet')
+    parser.add_argument('--embed_class_layers_dims',
+                        type=str,
+                        default="256,512",
+                        help='List of dimension for embedding class layers')
+    parser.add_argument('--timesteps',
+                        type=str,
                         default="500",
                         help='Nmber of Diffusion timesteps')
     parser.add_argument('--data_num',
-                        type=int,
-                        default="100000",
+                        type=str,
+                        default="165000",
                         help='Number of Training Data')
     parser.add_argument('--sample_num',
-                        type=int,
-                        default="10000",
-                        help='Number of initial guesses to be sampled')
-    parser.add_argument('--fixed_alpha',
-                        type=float,
-                        default=False,
-                        help='Set to a certain value if you only want samples with this alpha value (does not work for 0)')
+                        type=str,
+                        default="1",
+                        help='Number of samples')
+    parser.add_argument('--classifier',
+                        type=str,
+                        default="0.05",
+                        help='Level of the thrust')
+    parser.add_argument('--diffusion_w',
+                        type=str,
+                        default="5.0",
+                        help='w parameter for classifier free guidance sampling')
+    parser.add_argument('--batch_size',
+                        type=str,
+                        default="512",
+                        help='batch size that was used for diffusion model training')
     
     args = parser.parse_args()
 
+
+    unet_dim = int(args.unet_dim)
+    embed_class_layers_dims = args.embed_class_layers_dims
     timesteps = int(args.timesteps)
     data_num = int(args.data_num)
     sample_num = int(args.sample_num)
-    mask_val = float(args.mask_val)
-    fixed_alpha = float(args.fixed_alpha)
-
-    main(timesteps,data_num,sample_num,mask_val,fixed_alpha)
+    classifier = float(args.classifier)
+    diffusion_w = float(args.diffusion_w)
+    batch_size = int(args.batch_size)
+    
+    main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,classifier,diffusion_w,batch_size)
