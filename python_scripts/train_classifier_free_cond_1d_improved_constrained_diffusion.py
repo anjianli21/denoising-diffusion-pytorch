@@ -215,7 +215,7 @@ def parse_args():
                         help='Channel number of the data')
     parser.add_argument('--mask_val',
                         type=float,
-                        default=0.0,
+                        default=-1.0,
                         help='The value to mask context input')
 
     # GaussianDiffusion1D parameters

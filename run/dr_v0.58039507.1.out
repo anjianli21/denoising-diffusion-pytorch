@@ -1,0 +1,7 @@
+SLURM_JOBID: 58039507
+SLURM_ARRAY_TASK_ID: 1
+SLURM_ARRAY_JOB_ID: 58039507
+Random seed set as 0
+constraint_loss_type NA
+normalize_xt_by_mean_sigma False
+constraint_violation_weight 0.01
