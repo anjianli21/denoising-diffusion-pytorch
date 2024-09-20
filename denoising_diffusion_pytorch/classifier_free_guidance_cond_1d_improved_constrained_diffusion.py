@@ -926,8 +926,8 @@ class GaussianDiffusion1D(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
         # TODO: plot the violation loss for each t ####################################################################
-        to_plot = True
-        to_clip = True
+        to_plot = False
+        to_clip = False
         if to_plot:
             self.plot_constraint_violation(to_clip=to_clip, t=t, x_start=x_start,
                                            noise=noise, classes=classes)
@@ -958,6 +958,10 @@ class GaussianDiffusion1D(nn.Module):
             from denoising_diffusion_pytorch.constraint_violation_function_improved_tabletop_setupv2 import \
                 get_constraint_violation_tabletop
             get_constraint_function = get_constraint_violation_tabletop
+        elif self.task_type == "quadrotor":
+            from denoising_diffusion_pytorch.constraint_violation_function_improved_quadrotor import \
+                get_constraint_violation_quadrotor
+            get_constraint_function = get_constraint_violation_quadrotor
         elif self.task_type == "cr3bp":
             pass
         else:
@@ -1328,6 +1332,8 @@ class GaussianDiffusion1D(nn.Module):
             plt.title(f'Car: Mean Violation Values Over Sampling Steps', fontsize=20)
         elif self.task_type == "tabletop":
             plt.title(f'Tabletop: Mean Violation Values Over Sampling Steps', fontsize=20)
+        elif self.task_type == "quadrotor":
+            plt.title(f'Quadrotor: Mean Violation Values Over Sampling Steps', fontsize=20)
         plt.xlabel('Sampling Step', fontsize=20)
         plt.ylabel('Violation Value', fontsize=20)
         plt.legend(fontsize=20)

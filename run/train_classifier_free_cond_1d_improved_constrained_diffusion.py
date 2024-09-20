@@ -62,8 +62,10 @@ def main():
     if os.path.exists("/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb"):
         if task_type == "car":
             os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/car/{training_data_type}", exist_ok=True)
-        if task_type == "tabletop":
+        elif task_type == "tabletop":
             os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/tabletop_v2/{training_data_type}", exist_ok=True)
+        elif task_type == "quadrotor":
+            os.makedirs(f"/scratch/gpfs/al5844/project/denoising-diffusion-pytorch/wandb/quadrotor/{training_data_type}", exist_ok=True)
     else:
         os.makedirs(f"wandb/{task_type}/{training_data_type}", exist_ok=True)
     ####################################################################################################################
@@ -295,7 +297,7 @@ def parse_args():
                         type=str,
                         default='car',
                         help="type of the task",
-                        choices=["car", "tabletop", "cr3bp"])
+                        choices=["car", "tabletop", "cr3bp", "quadrotor"])
     parser.add_argument('--constraint_gt_sample_num',
                         type=int,
                         default=100,
