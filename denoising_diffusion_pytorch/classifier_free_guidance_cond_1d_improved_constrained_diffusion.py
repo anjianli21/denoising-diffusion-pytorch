@@ -926,7 +926,7 @@ class GaussianDiffusion1D(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
         # TODO: plot the violation loss for each t ####################################################################
-        to_plot = False
+        to_plot = True
         to_clip = True
         if to_plot:
             self.plot_constraint_violation(to_clip=to_clip, t=t, x_start=x_start,
@@ -1363,6 +1363,7 @@ class GaussianDiffusion1D(nn.Module):
             steps = np.arange(0, 500)
 
         # Plot using seaborn for the mean line and fill between for the confidence interval
+        plt.figure(figsize=(8, 6))
         sns.lineplot(x=steps, y=mean_values, label=f'{data_type} Mean Violation Value')
         plt.fill_between(steps, mean_values - ci_95, mean_values + ci_95, alpha=0.5,
                          label='95% Confidence Interval')
