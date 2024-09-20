@@ -1,8 +1,8 @@
 import torch
 import pickle
 
-def get_constraint_violation_quadrotor(x, c, scale, device):
 
+def get_constraint_violation_quadrotor(x, c, scale, device):
     # Scale back to original x (t_final, control)
     TIME_MIN = 4.33
     TIME_MAX = 4.37
@@ -26,117 +26,142 @@ def get_constraint_violation_quadrotor(x, c, scale, device):
     # Scale and unpack x
     original_x = torch.zeros_like(x).to(device)
     original_x[:, 0] = x[:, 0] * (TIME_MAX - TIME_MIN) + TIME_MIN
-    original_x[:, 1:] = x[:, 1:] * (CONTROL_MAX - CONTROL_MIN) + CONTROL_MIN
+    original_x[:, 1:81] = x[:, 1:81] * (CONTROL_U1_MAX - CONTROL_U1_MIN) + CONTROL_U1_MIN
+    original_x[:, 81:161] = x[:, 81:161] * (CONTROL_U2_MAX - CONTROL_U2_MIN) + CONTROL_U2_MIN
+    original_x[:, 161:241] = x[:, 161:241] * (CONTROL_U3_MAX - CONTROL_U3_MIN) + CONTROL_U3_MIN
 
     x_sol = {}
     x_sol["t_final"] = original_x[:, 0]
-    x_sol["car_0_u0"] = original_x[:, 1:1 + timestep]
-    x_sol["car_0_u1"] = original_x[:, 1 + timestep:1 + 2 * timestep]
+    x_sol["agent_0_u0"] = original_x[:, 1:1 + timestep]
+    x_sol["agent_0_u1"] = original_x[:, 1 + timestep:1 + 2 * timestep]
+    x_sol["agent_0_u2"] = original_x[:, 1 + 2 * timestep:1 + 3 * timestep]
 
-    car_start_pos = torch.tensor([[5.0, 5.0]]).to(device)
+    agent_start_state = torch.tensor([[-12.0, 0., 0., 0., 0., 0., 0., 0., 0., 0.]]).to(device)
+    disturbances = torch.zeros((timestep, 3)).to(device)
 
-    state_x, state_y = integrate_dynamics(x_sol=x_sol,
-                                          car_num=1, u_num_per_car=2,
-                                          car_start_pos=car_start_pos,
-                                          timestep=timestep,
-                                          batch_size=batch_size,
-                                          device=device)
+    state_history = integrate_dynamics(x_sol=x_sol,
+                                       agent_num=1, u_num_per_agent=3,
+                                       agent_start_state=agent_start_state,
+                                       timestep=timestep,
+                                       disturbances=disturbances,
+                                       batch_size=batch_size,
+                                       device=device)
 
-    # print(f"state x is {state_x[0, :]}")
+    state_x, state_y, state_z = state_history[:, :, 0], state_history[:, :, 4], state_history[:, :, 8]
 
     # Unpack c (obs_pos, obs_radius)
     original_c = torch.zeros_like(c).to(device)
-    original_c[:, :8] = c[:, :8] * (OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
-    original_c[:, 8:12] = c[:, 8:12] * (OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
-    original_c[:, 12:14] = c[:, 12:14] * (GOAL_POS_MAX - GOAL_POS_MIN) + GOAL_POS_MIN
+    original_c[:, :12] = c[:, :12] * (OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
+    original_c[:, 12:16] = c[:, 12:16] * (OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
 
-    obs_pos = original_c[:, :8].reshape(-1, 4, 2)
-    obs_radius = original_c[:, 8:12]
-    car_goal_pos = original_c[:, 12:14]
+    obs_pos = original_c[:, :12].reshape(-1, 4, 3)
+    obs_radius = original_c[:, 12:16]
 
     # Other parameters
     obs_num = 4
-    car_num = 1
-    car_goal_radius = torch.tensor(0.2).to(device)
-    car_radius = torch.tensor(0.2).to(device)
+    agent_num = 1
+    agent_goal_radius = torch.tensor(1.0).to(device)
+    agent_radius = torch.tensor(1.0).to(device)
+    agent_goal_pos = torch.tensor([[12., 0., 0.]]).to(device)
 
     # goal reaching constraints
-    tolerance = torch.tensor(1e-3).to(device)
+    goal_reaching_tolerance = torch.tensor(5e-2).to(device)
+    obstacle_avoidance_tolerance = torch.tensor(5e-2).to(device)
 
-    goal_reaching_violation = torch.zeros((batch_size, car_num)).to(device)
-    for i in range(car_num):
-        dist_to_goal_square = (state_x[:, i, -1] - car_goal_pos[:, 0]) ** 2 + (state_y[:, i, -1] - car_goal_pos[:, 1]) ** 2
-        threshold = car_goal_radius ** 2
-        goal_reaching_violation[:, i] = torch.max(torch.tensor(0.0).to(device), dist_to_goal_square - threshold - tolerance)
-    goal_reaching_violation = torch.sum(goal_reaching_violation, dim=1)
+    # goal_reaching_violation = torch.zeros((batch_size)).to(device)
+    dist_to_goal_square = (state_x[:, -1] - agent_goal_pos[:, 0]) ** 2 + \
+                          (state_y[:, -1] - agent_goal_pos[:, 1]) ** 2 + \
+                          (state_z[:, -1] - agent_goal_pos[:, 2]) ** 2
+    threshold = agent_goal_radius ** 2
+    goal_reaching_violation = torch.max(torch.tensor(0.0).to(device),
+                                              dist_to_goal_square - threshold - goal_reaching_tolerance)
+    # goal_reaching_violation = torch.sum(goal_reaching_violation)
 
     # Obstacle avoidance constraints
-    obstacle_avoidance_violation = torch.zeros((batch_size, car_num, obs_num, timestep + 1)).to(device)
-    for i in range(car_num):
-        for j in range(obs_num):
-            dist_to_obstacle_square = (state_x[:, i, :] - obs_pos[:, j, 0].reshape(-1, 1)) ** 2 + (state_y[:, i, :] - obs_pos[:, j, 1].reshape(-1, 1)) ** 2
-            threshold = (car_radius + obs_radius[:, j]).reshape(-1, 1) ** 2
-            obstacle_avoidance_violation[:, i, j, :] = torch.max(torch.tensor(0.0).to(device), threshold - dist_to_obstacle_square - tolerance)
-    obstacle_avoidance_violation = torch.sum(obstacle_avoidance_violation, dim=[1, 2, 3])
+    obstacle_avoidance_violation = torch.zeros((batch_size, obs_num, timestep + 1)).to(device)
+    for j in range(obs_num):
+        dist_to_obstacle_square = (state_x - obs_pos[:, j, 0].reshape(-1, 1)) ** 2 + \
+                                  (state_y - obs_pos[:, j, 1].reshape(-1, 1)) ** 2 + \
+                                  (state_z - obs_pos[:, j, 2].reshape(-1, 1)) ** 2
+        threshold = (agent_radius + obs_radius[:, j]).reshape(-1, 1) ** 2
+        obstacle_avoidance_violation[:, j, :] = torch.max(torch.tensor(0.0).to(device),
+                                                             threshold - dist_to_obstacle_square - obstacle_avoidance_tolerance)
+    obstacle_avoidance_violation = torch.sum(obstacle_avoidance_violation, dim=[1, 2])
 
     # print(f"goal_reaching_violation max {torch.max(goal_reaching_violation)}")
     # print(f"goal_reaching_violation min {torch.min(goal_reaching_violation)}")
     # print(f"obstacle_avoidance_violation max {torch.max(obstacle_avoidance_violation)}")
 
     violation = goal_reaching_violation + obstacle_avoidance_violation
+    # print(f"max goal reaching violation {torch.max(goal_reaching_violation)}")
+    # print(f"max obstacle avoidance violation {torch.max(obstacle_avoidance_violation)}")
 
     violation = violation * scale
     # violation = torch.mean(violation)
 
     return violation
 
-def integrate_dynamics(x_sol, car_num, u_num_per_car, car_start_pos, timestep, batch_size, device):
+
+def integrate_dynamics(x_sol, agent_num, u_num_per_agent, agent_start_state, timestep, disturbances, batch_size, device):
     t_final = x_sol["t_final"]
-    car_control = torch.zeros((batch_size, car_num, timestep, u_num_per_car)).to(device)
-    for i in range(car_num):
-        for k in range(u_num_per_car):
-            car_control[:, i, :, k] = x_sol[f"car_{i}_u{k}"]
+    agent_control = torch.zeros((batch_size, agent_num, timestep, u_num_per_agent), device=device)
+    for i in range(agent_num):
+        for k in range(u_num_per_agent):
+            agent_control[:, i, :, k] = x_sol[f"agent_{i}_u{k}"]
 
-    # Integrate the x* solution through the dynamics
-    dt = t_final.unsqueeze(1) / timestep  # Shape: (batch_size, 1)
+    # Constants
+    constants = torch.tensor([10.0, 8.0, 10.0, 0.91, 9.81], device=device)  # d_0, d_1, n_0, k_T, g
 
-    state_x = torch.zeros((batch_size, car_num, timestep + 1)).to(device)
-    state_y = torch.zeros((batch_size, car_num, timestep + 1)).to(device)
+    dt = t_final / timestep
 
-    # Initial value setup
-    state_x[:, :, 0] = car_start_pos[:, 0].unsqueeze(0).expand(batch_size, -1)
-    state_y[:, :, 0] = car_start_pos[:, 1].unsqueeze(0).expand(batch_size, -1)
+    state_history = torch.zeros((batch_size, timestep + 1, 10), device=device)
+    state_history[:, 0] = agent_start_state.repeat(batch_size, 1)
 
-    # Configure dynamics
-    dx = lambda v_x: v_x.clone()
-    dy = lambda v_y: v_y.clone()
+    disturbances = disturbances.unsqueeze(0).repeat(batch_size, 1, 1)
 
-    # RK4 integration without explicit batch loop
     for t in range(timestep):
-        v_x = car_control[:, :, t, 0]
-        v_y = car_control[:, :, t, 1]
+        state_history[:, t + 1] = rk4_step(
+            state_history[:, t],
+            agent_control[:, 0, t],  # Assuming agent_num is 1
+            disturbances[:, t],
+            dt,
+            constants
+        )
 
-        # Compute the increments for each car using vectorized operations
-        k1_x = dx(v_x)
-        k1_y = dy(v_y)
+    return state_history
 
-        k2_x = dx(v_x + k1_x * dt / 2)
-        k2_y = dy(v_y + k1_y * dt / 2)
+def quadrotor_dynamics(state, control, disturbance, constants):
+    x, v_x, theta_x, omega_x, y, v_y, theta_y, omega_y, z, v_z = state.unbind(dim=-1)
+    a_x, a_y, a_z = control.unbind(dim=-1)
+    d_x, d_y, d_z = disturbance.unbind(dim=-1)
 
-        k3_x = dx(v_x + k2_x * dt / 2)
-        k3_y = dy(v_y + k2_y * dt / 2)
+    d_0, d_1, n_0, k_T, g = constants
 
-        k4_x = dx(v_x + k3_x * dt)
-        k4_y = dy(v_y + k3_y * dt)
+    return torch.stack([
+        v_x + d_x,
+        g * torch.tan(theta_x),
+        -d_1 * theta_x + omega_x,
+        -d_0 * theta_x + n_0 * a_x,
+        v_y + d_y,
+        g * torch.tan(theta_y),
+        -d_1 * theta_y + omega_y,
+        -d_0 * theta_y + n_0 * a_y,
+        v_z + d_z,
+        k_T * a_z - g
+    ], dim=-1)
 
-        state_x[:, :, t + 1] = state_x[:, :, t] + (dt / 6) * (k1_x + 2 * k2_x + 2 * k3_x + k4_x)
-        state_y[:, :, t + 1] = state_y[:, :, t] + (dt / 6) * (k1_y + 2 * k2_y + 2 * k3_y + k4_y)
 
-    return state_x, state_y
+def rk4_step(state, control, disturbance, dt, constants):
+    k1 = quadrotor_dynamics(state, control, disturbance, constants)
+    k2 = quadrotor_dynamics(state + 0.5 * dt.unsqueeze(-1) * k1, control, disturbance, constants)
+    k3 = quadrotor_dynamics(state + 0.5 * dt.unsqueeze(-1) * k2, control, disturbance, constants)
+    k4 = quadrotor_dynamics(state + dt.unsqueeze(-1) * k3, control, disturbance, constants)
+
+    return state + (dt.unsqueeze(-1) / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
 
 if __name__ == "__main__":
-    # use_local_optimal_data = True
-    use_local_optimal_data = False
+    use_local_optimal_data = True
+    # use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
     data_num = 2000
