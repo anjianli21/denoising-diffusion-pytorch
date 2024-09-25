@@ -65,8 +65,8 @@ def get_constraint_violation_quadrotor(x, c, scale, device):
     agent_goal_pos = torch.tensor([[12., 0., 0.]]).to(device)
 
     # goal reaching constraints
-    goal_reaching_tolerance = torch.tensor(5e-2).to(device)
-    obstacle_avoidance_tolerance = torch.tensor(5e-2).to(device)
+    goal_reaching_tolerance = torch.tensor(1e-3).to(device)
+    obstacle_avoidance_tolerance = torch.tensor(1e-3).to(device)
 
     # goal_reaching_violation = torch.zeros((batch_size)).to(device)
     dist_to_goal_square = (state_x[:, -1] - agent_goal_pos[:, 0]) ** 2 + \
