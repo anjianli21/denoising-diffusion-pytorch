@@ -16,8 +16,10 @@ import torch
 
 
 def main():
-    TIME_MIN = 4.33
-    TIME_MAX = 4.37
+
+    # TODO: change time range
+    TIME_MIN = 0.
+    TIME_MAX = 10.
     CONTROL_U1_MIN = - np.pi / 9 - .001
     CONTROL_U1_MAX = np.pi / 9 + .001
     CONTROL_U2_MIN = - np.pi / 9 - .001
@@ -25,10 +27,17 @@ def main():
     CONTROL_U3_MIN = 0. - .001
     CONTROL_U3_MAX = 1.5 * 9.81 + .001
 
-    OBS_POS_MIN = -6.0
-    OBS_POS_MAX = 6.0
-    OBS_RADIUS_MIN = 2.0
-    OBS_RADIUS_MAX = 4.0
+    OBS_POS_X_MIN = -6.0
+    OBS_POS_X_MAX = 6.0
+    OBS_POS_Y_MIN = -3.0
+    OBS_POS_Y_MAX = 3.0
+    OBS_POS_Z_MIN = -3.0
+    OBS_POS_Z_MAX = 3.0
+
+    OBS_RADIUS_MIN = 1.5
+    OBS_RADIUS_MAX = 3.5
+
+    GOAL_PERTURBATION_RANGE = 2.
 
     obs_num = 4
 
@@ -51,8 +60,8 @@ def main():
 
     data_type_list = [
         "quadrotor_constrained_diffusion_seed_0",
-        "quadrotor_constrained_diffusion_seed_1",
-        "quadrotor_constrained_diffusion_seed_2",
+        # "quadrotor_constrained_diffusion_seed_1",
+        # "quadrotor_constrained_diffusion_seed_2",
     ]
 
     # Configure path ##############################################################################################
@@ -68,7 +77,7 @@ def main():
 
         current_prediction_data_list = []
 
-        obs_condition_input_list = []
+        obs_condition_goalperturb_input_list = []
         for j in range(len(condition_seed_list)):
             condition_seed = condition_seed_list[j]
 
@@ -83,18 +92,18 @@ def main():
                 # print("sample obs again")
 
                 agent_start_pos = np.array([[-12.0, 0.0, 0.0]])
-                agent_goal_pos = np.array([[12., 0., 0.]])
+                # TODO: add random perturbation to the goal pos
+                agent_goal_pos_perturbation = rng_condition.rand(1) * 2 * GOAL_PERTURBATION_RANGE - GOAL_PERTURBATION_RANGE
+                agent_goal_pos = np.array([[12., 0., 0.]]) + agent_goal_pos_perturbation
+
                 obs_radius = rng_condition.rand(obs_num) * (OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
 
-                pos_x_min, pos_y_min, pos_z_min = -6., -6., -6.,
-                pos_x_max, pos_y_max, pos_z_max = 6., 6., 6.,
-
-                obs_pos_x = rng_condition.rand(obs_num - 1) * (pos_x_max - pos_x_min) + pos_x_min
-                obs_pos_y = rng_condition.rand(obs_num - 1) * (pos_y_max - pos_y_min) + pos_y_min
-                obs_pos_z = rng_condition.rand(obs_num - 1) * (pos_z_max - pos_z_min) + pos_z_min
+                obs_pos_x = rng_condition.rand(obs_num - 1) * (OBS_POS_X_MAX - OBS_POS_X_MIN) + OBS_POS_X_MIN
+                obs_pos_y = rng_condition.rand(obs_num - 1) * (OBS_POS_Y_MAX - OBS_POS_Y_MIN) + OBS_POS_Y_MIN
+                obs_pos_z = rng_condition.rand(obs_num - 1) * (OBS_POS_Z_MAX - OBS_POS_Z_MIN) + OBS_POS_Z_MIN
 
                 # random sample from 0.3 to 1.0
-                center_obs_pos_x = (rng_condition.rand(1) * 0.4 + 0.3) * (pos_x_max - pos_x_min) + pos_x_min
+                center_obs_pos_x = (rng_condition.rand(1) * 0.4 + 0.3) * (OBS_POS_X_MAX - OBS_POS_X_MIN) + OBS_POS_X_MIN
                 gradient = (agent_goal_pos[0][1] - agent_start_pos[0][1]) / (
                         agent_goal_pos[0][0] - agent_start_pos[0][0])
                 center_obs_pos_y = agent_start_pos[0][1] + (
@@ -122,48 +131,75 @@ def main():
             obs_radius = obs_radius.reshape(1, 4)
             obs_radius = (obs_radius - OBS_RADIUS_MIN) / (OBS_RADIUS_MAX - OBS_RADIUS_MIN)
 
-            obs_pos = obs_pos.reshape(1, 12)
-            obs_pos = (obs_pos - OBS_POS_MIN) / (OBS_POS_MAX - OBS_POS_MIN)
+            obs_pos_x = obs_pos[:, 0]
+            obs_pos_y = obs_pos[:, 1]
+            obs_pos_z = obs_pos[:, 2]
+            obs_pos_x = (obs_pos_x - OBS_POS_X_MIN) / (OBS_POS_X_MAX - OBS_POS_X_MIN)
+            obs_pos_y = (obs_pos_y - OBS_POS_Y_MIN) / (OBS_POS_Y_MAX - OBS_POS_Y_MIN)
+            obs_pos_z = (obs_pos_z - OBS_POS_Z_MIN) / (OBS_POS_Z_MAX - OBS_POS_Z_MIN)
+            obs_pos = np.hstack([obs_pos_x.reshape(1, -1), obs_pos_y.reshape(1, -1), obs_pos_z.reshape(1, -1)])
 
             obs_condition_input = np.hstack([obs_pos, obs_radius])
 
             # Repeat the same obs input as the sample num
             obs_condition_input = np.tile(obs_condition_input, (sample_num, 1))
-            obs_condition_input = torch.tensor(obs_condition_input).float().cuda()
-            obs_condition_input_list.append(obs_condition_input)
 
-        obs_condition_input_list = torch.vstack(obs_condition_input_list)
+            # TODO: also normalize the goal pos perturbation
+            agent_goal_pos_perturbation = (agent_goal_pos_perturbation + GOAL_PERTURBATION_RANGE) / (
+                        2 * GOAL_PERTURBATION_RANGE)
+            agent_goal_pos_perturbation = agent_goal_pos_perturbation.reshape(1, -1)
+            agent_goal_pos_perturbation = np.tile(agent_goal_pos_perturbation, (sample_num, 1))
+
+            # TODO: combine obs condition and goalperturb
+            obs_condition_goalperturb_input = np.hstack([obs_condition_input, agent_goal_pos_perturbation])
+            obs_condition_goalperturb_input = torch.tensor(obs_condition_goalperturb_input).float().cuda()
+            obs_condition_goalperturb_input_list.append(obs_condition_goalperturb_input)
+
+        obs_condition_goalperturb_input_list = torch.vstack(obs_condition_goalperturb_input_list)
 
         if sample_type == "full_sample":
-            t_final_control_samples = sample_diffusion(condition_input=obs_condition_input_list,
-                                                       input_output_type="input_obs_output_t_control",
+            t_final_control_samples = sample_diffusion(condition_input=obs_condition_goalperturb_input_list,
+                                                       input_output_type="input_obs_goalperturb_output_t_control",
                                                        checkpoint_parent_path=model_parent_path,
                                                        sample_num=sample_num * condition_seed_num,
                                                        diffusion_w=diffusion_w)
-            obs_condition_input_list = obs_condition_input_list.detach().cpu().numpy()
+            obs_condition_goalperturb_input_list = obs_condition_goalperturb_input_list.detach().cpu().numpy()
             t_final_control_samples = t_final_control_samples.detach().cpu().numpy()
 
-            obs_t_final_control_samples = np.hstack((obs_condition_input_list, t_final_control_samples))
+            obs_goalperturb_t_final_control_samples = np.hstack((obs_condition_goalperturb_input_list, t_final_control_samples))
 
-        current_prediction_data_list.append(copy.copy(obs_t_final_control_samples))
+        current_prediction_data_list.append(copy.copy(obs_goalperturb_t_final_control_samples))
 
         # Data preparation #######################################################################################################
         # obs_pos,
-        obs_t_final_control_samples[:, :12] = obs_t_final_control_samples[:, :12] * (
-                OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
-        # obs_radius,
-        obs_t_final_control_samples[:, 12:16] = obs_t_final_control_samples[:, 12:16] * (
-                OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
+        obs_goalperturb_t_final_control_samples[:, :4] = obs_goalperturb_t_final_control_samples[:, :4] * (
+                OBS_POS_X_MAX - OBS_POS_X_MIN) + OBS_POS_X_MIN
+        obs_goalperturb_t_final_control_samples[:, 4:8] = obs_goalperturb_t_final_control_samples[:, 4:8] * (
+                OBS_POS_Y_MAX - OBS_POS_Y_MIN) + OBS_POS_Y_MIN
+        obs_goalperturb_t_final_control_samples[:, 8:12] = obs_goalperturb_t_final_control_samples[:, 8:12] * (
+                OBS_POS_Z_MAX - OBS_POS_Z_MIN) + OBS_POS_Z_MIN
+
+        # obs_radius, original range [0.5, 1.5]
+        obs_goalperturb_t_final_control_samples[:, 12:16] = obs_goalperturb_t_final_control_samples[:,
+                                                            12:16] * (
+                                                                    OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
+
+        obs_goalperturb_t_final_control_samples[:, 16] = obs_goalperturb_t_final_control_samples[:,
+                                                         16] * 2 * GOAL_PERTURBATION_RANGE - GOAL_PERTURBATION_RANGE
+
         # t_final, original range [TIME_MIN, TIME_MAX]
-        obs_t_final_control_samples[:, 16] = obs_t_final_control_samples[:, 16] * (
+        obs_goalperturb_t_final_control_samples[:, 17] = obs_goalperturb_t_final_control_samples[:, 17] * (
                 TIME_MAX - TIME_MIN) + TIME_MIN
         # Control, original range u1, u2, u3
-        obs_t_final_control_samples[:, 17:17 + 80] = obs_t_final_control_samples[:, 17:17 + 80] * (
-                CONTROL_U1_MAX - CONTROL_U1_MIN) + CONTROL_U1_MIN
-        obs_t_final_control_samples[:, 17 + 80:17 + 160] = obs_t_final_control_samples[:, 17 + 80:17 + 160] * (
-                CONTROL_U2_MAX - CONTROL_U2_MIN) + CONTROL_U2_MIN
-        obs_t_final_control_samples[:, 17 + 160:17 + 240] = obs_t_final_control_samples[:, 17 + 160:17 + 240] * (
-                CONTROL_U3_MAX - CONTROL_U3_MIN) + CONTROL_U3_MIN
+        obs_goalperturb_t_final_control_samples[:, 18:18 + 80] = obs_goalperturb_t_final_control_samples[:,
+                                                                 18:18 + 80] * (
+                                                                         CONTROL_U1_MAX - CONTROL_U1_MIN) + CONTROL_U1_MIN
+        obs_goalperturb_t_final_control_samples[:, 18 + 80:18 + 160] = obs_goalperturb_t_final_control_samples[
+                                                                       :, 18 + 80:18 + 160] * (
+                                                                               CONTROL_U2_MAX - CONTROL_U2_MIN) + CONTROL_U2_MIN
+        obs_goalperturb_t_final_control_samples[:, 18 + 160:18 + 240] = obs_goalperturb_t_final_control_samples[
+                                                                        :, 18 + 160:18 + 240] * (
+                                                                                CONTROL_U3_MAX - CONTROL_U3_MIN) + CONTROL_U3_MIN
         print("data normalization is done")
 
         # Save ##########################################################################################################
@@ -177,15 +213,15 @@ def main():
                 os.makedirs(warmstart_data_parent_path, exist_ok=True)
             warmstart_data_path = f"{warmstart_data_parent_path}/{data_type}_condition_seed_{curr_conditional_seed}_initial_guess_seed_{curr_initial_guess_seed}.pkl"
             with open(warmstart_data_path, 'wb') as f:
-                pickle.dump(obs_t_final_control_samples[num, :], f)
+                pickle.dump(obs_goalperturb_t_final_control_samples[num, :], f)
             print(f"{warmstart_data_path} is saved")
 
         #############################################################################
         # check constraint violation
         current_prediction_data_list = np.vstack(current_prediction_data_list)
         current_prediction_data_tensor = torch.tensor(current_prediction_data_list)
-        current_violation = get_constraint_violation_quadrotor(x=current_prediction_data_tensor[:, 16:],
-                                                               c=current_prediction_data_tensor[:, :16],
+        current_violation = get_constraint_violation_quadrotor(x=current_prediction_data_tensor[:, 17:],
+                                                               c=current_prediction_data_tensor[:, :17],
                                                                scale=torch.tensor(1.0),
                                                                device=current_prediction_data_tensor.device)
         print(f"data type is {data_type}, violation is {current_violation}")
@@ -208,8 +244,8 @@ def sample_diffusion(condition_input, input_output_type, checkpoint_parent_path,
     batch_size = 512
     cond_drop_prob = 0.1
 
-    if input_output_type == "input_obs_output_t_control":
-        class_dim = 16
+    if input_output_type == "input_obs_goalperturb_output_t_control":
+        class_dim = 17
         channel = 1
         seq_length = 241
     else:
@@ -277,7 +313,7 @@ def check_condition(parameters, to_print=False):
     to_print = False
 
     agent_num = 1
-    agent_radius = 1.0
+    agent_radius = 0.5
     obs_num = 4
     obs_radius = parameters["obs_radius"]
     obs_pos = parameters["obs_pos"]

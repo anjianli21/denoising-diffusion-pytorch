@@ -3,9 +3,10 @@ import pickle
 
 
 def get_constraint_violation_quadrotor(x, c, scale, device):
-    # Scale back to original x (t_final, control)
-    TIME_MIN = 4.33
-    TIME_MAX = 4.37
+    # TODO: change time range
+    TIME_MIN = 0.
+    TIME_MAX = 10.
+
     CONTROL_U1_MIN = - torch.pi / 9 - .001
     CONTROL_U1_MAX = torch.pi / 9 + .001
     CONTROL_U2_MIN = - torch.pi / 9 - .001
@@ -13,10 +14,17 @@ def get_constraint_violation_quadrotor(x, c, scale, device):
     CONTROL_U3_MIN = 0. - .001
     CONTROL_U3_MAX = 1.5 * 9.81 + .001
 
-    OBS_POS_MIN = -6.0
-    OBS_POS_MAX = 6.0
-    OBS_RADIUS_MIN = 2.0
-    OBS_RADIUS_MAX = 4.0
+    OBS_POS_X_MIN = -6.0
+    OBS_POS_X_MAX = 6.0
+    OBS_POS_Y_MIN = -3.0
+    OBS_POS_Y_MAX = 3.0
+    OBS_POS_Z_MIN = -3.0
+    OBS_POS_Z_MAX = 3.0
+
+    OBS_RADIUS_MIN = 1.5
+    OBS_RADIUS_MAX = 3.5
+
+    GOAL_PERTURBATION_RANGE = 2.
 
     timestep = 80
     batch_size = x.size()[0]
@@ -51,18 +59,30 @@ def get_constraint_violation_quadrotor(x, c, scale, device):
 
     # Unpack c (obs_pos, obs_radius)
     original_c = torch.zeros_like(c).to(device)
-    original_c[:, :12] = c[:, :12] * (OBS_POS_MAX - OBS_POS_MIN) + OBS_POS_MIN
+    original_c[:, :4] = c[:, :4] * (OBS_POS_X_MAX - OBS_POS_X_MIN) + OBS_POS_X_MIN
+    original_c[:, 4:8] = c[:, 4:8] * (OBS_POS_Y_MAX - OBS_POS_Y_MIN) + OBS_POS_Y_MIN
+    original_c[:, 8:12] = c[:, 8:12] * (OBS_POS_Z_MAX - OBS_POS_Z_MIN) + OBS_POS_Z_MIN
+
     original_c[:, 12:16] = c[:, 12:16] * (OBS_RADIUS_MAX - OBS_RADIUS_MIN) + OBS_RADIUS_MIN
 
-    obs_pos = original_c[:, :12].reshape(-1, 4, 3)
+    obs_pos = torch.zeros((original_c.shape[0], 4, 3)).to(device)
+    obs_pos[:, :, 0] = original_c[:, :4]
+    obs_pos[:, :, 1] = original_c[:, 4:8]
+    obs_pos[:, :, 2] = original_c[:, 8:12]
+
     obs_radius = original_c[:, 12:16]
+
+    agent_goal_pos_perturbance = c[:, 16] * GOAL_PERTURBATION_RANGE * 2 - GOAL_PERTURBATION_RANGE
 
     # Other parameters
     obs_num = 4
     agent_num = 1
-    agent_goal_radius = torch.tensor(1.0).to(device)
-    agent_radius = torch.tensor(1.0).to(device)
+    agent_goal_radius = torch.tensor(0.5).to(device)
+    agent_radius = torch.tensor(0.5).to(device)
+
     agent_goal_pos = torch.tensor([[12., 0., 0.]]).to(device)
+    agent_goal_pos = agent_goal_pos.expand(c.shape[0], -1)
+    agent_goal_pos = agent_goal_pos + agent_goal_pos_perturbance.reshape(-1, 1)
 
     # goal reaching constraints
     goal_reaching_tolerance = torch.tensor(1e-3).to(device)
@@ -164,18 +184,19 @@ if __name__ == "__main__":
     # use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 2000
+    data_num = 4
     timestep = 80
 
     if use_local_optimal_data:
-        data_path = "data/quadrotor/quadrotor_obs_time_control_num_103898.pkl"
-        # data_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/tabletop_v2_diffusion_seed_0/tabletop_v2_diffusion_seed_0_num_2000.pkl"
+        # data_path = "data/quadrotor/quadrotor_obs_time_control_num_103898.pkl"
+        data_path = "data/quadrotor/quadrotor_obs_goalperturb_time_control_test.pkl"
+
         with open(data_path, 'rb') as f:
             local_optimal_data = pickle.load(f)
 
         local_optimal_data_to_use = local_optimal_data[:data_num, :]
-        c = local_optimal_data_to_use[:, :16]
-        x = local_optimal_data_to_use[:, 16:]
+        c = local_optimal_data_to_use[:, :17]
+        x = local_optimal_data_to_use[:, 17:]
 
         # Random x
         x = torch.tensor(x).to(device)
@@ -184,7 +205,7 @@ if __name__ == "__main__":
     else:
         x = torch.rand(data_num, timestep * 3 + 1).to(device)
         x.requires_grad_(True)
-        c = torch.rand(data_num, 16).to(device)
+        c = torch.rand(data_num, 17).to(device)
     scale = torch.ones(data_num).to(device)
     violation = get_constraint_violation_quadrotor(x, c, scale, device)
     violation = torch.mean(violation)
