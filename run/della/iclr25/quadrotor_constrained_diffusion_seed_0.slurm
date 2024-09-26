@@ -5,9 +5,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=25G
+#SBATCH --mem=10G
 #SBATCH --gres=gpu:1
-#SBATCH --time=18:59:59
+#SBATCH --time=30:59:59
 #SBATCH --mail-type=all
 #SBATCH --mail-user=anjianl@princeton.edu
 #SBATCH --array=1
