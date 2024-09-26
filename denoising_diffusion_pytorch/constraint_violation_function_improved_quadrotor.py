@@ -4,8 +4,8 @@ import pickle
 
 def get_constraint_violation_quadrotor(x, c, scale, device):
     # TODO: change time range
-    TIME_MIN = 0.
-    TIME_MAX = 10.
+    TIME_MIN = 4.20
+    TIME_MAX = 4.57
 
     CONTROL_U1_MIN = - torch.pi / 9 - .001
     CONTROL_U1_MAX = torch.pi / 9 + .001
@@ -85,8 +85,8 @@ def get_constraint_violation_quadrotor(x, c, scale, device):
     agent_goal_pos = agent_goal_pos + agent_goal_pos_perturbance.reshape(-1, 1)
 
     # goal reaching constraints
-    goal_reaching_tolerance = torch.tensor(1e-3).to(device)
-    obstacle_avoidance_tolerance = torch.tensor(1e-3).to(device)
+    goal_reaching_tolerance = torch.tensor(2e-2).to(device)
+    obstacle_avoidance_tolerance = torch.tensor(1e-2).to(device)
 
     # goal_reaching_violation = torch.zeros((batch_size)).to(device)
     dist_to_goal_square = (state_x[:, -1] - agent_goal_pos[:, 0]) ** 2 + \
@@ -184,12 +184,12 @@ if __name__ == "__main__":
     # use_local_optimal_data = False
     device = "cuda:0"
     torch.autograd.set_detect_anomaly(True)
-    data_num = 4
+    data_num = 2000
     timestep = 80
 
     if use_local_optimal_data:
-        # data_path = "data/quadrotor/quadrotor_obs_time_control_num_103898.pkl"
-        data_path = "data/quadrotor/quadrotor_obs_goalperturb_time_control_test.pkl"
+        data_path = "data/quadrotor/quadrotor_obs_goalperturb_time_control_num_179219.pkl"
+        # data_path = "data/quadrotor/quadrotor_obs_goalperturb_time_control_test.pkl"
 
         with open(data_path, 'rb') as f:
             local_optimal_data = pickle.load(f)
