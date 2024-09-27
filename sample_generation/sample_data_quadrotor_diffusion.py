@@ -52,17 +52,17 @@ def main():
 
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
-    data_type_list = [
-        "quadrotor_diffusion_seed_0",
-        "quadrotor_diffusion_seed_1",
-        "quadrotor_diffusion_seed_2",
-    ]
-
     # data_type_list = [
-    #     "quadrotor_constrained_diffusion_seed_0",
-    #     # "quadrotor_constrained_diffusion_seed_1",
-    #     # "quadrotor_constrained_diffusion_seed_2",
+    #     "quadrotor_diffusion_seed_0",
+    #     "quadrotor_diffusion_seed_1",
+    #     "quadrotor_diffusion_seed_2",
     # ]
+
+    data_type_list = [
+        "quadrotor_constrained_diffusion_seed_0",
+        "quadrotor_constrained_diffusion_seed_1",
+        "quadrotor_constrained_diffusion_seed_2",
+    ]
 
     # Configure path ##############################################################################################
     parent_path = f"results/iclr25/quadrotor/results"

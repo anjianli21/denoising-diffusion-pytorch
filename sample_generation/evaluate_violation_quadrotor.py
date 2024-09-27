@@ -15,8 +15,8 @@ def evaluate_violation_car():
 
     # data_type_list = [
     #     "quadrotor_diffusion_seed_0",
-    #     "quadrotor_diffusion_seed_0",
-    #     "quadrotor_diffusion_seed_0",
+    #     "quadrotor_diffusion_seed_1",
+    #     "quadrotor_diffusion_seed_2",
     # ]
 
     data_type_list = [
@@ -24,6 +24,13 @@ def evaluate_violation_car():
         "cvae_lstm_seed_1",
         "cvae_lstm_seed_2",
     ]
+
+    # data_type_list = [
+    #     "quadrotor_constrained_diffusion_seed_0",
+    #     "quadrotor_constrained_diffusion_seed_1",
+    #     "quadrotor_constrained_diffusion_seed_2",
+    # ]
+
 
     data_parent_path_list = [f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/quadrotor/{data_type}" for data_type in data_type_list]
 
