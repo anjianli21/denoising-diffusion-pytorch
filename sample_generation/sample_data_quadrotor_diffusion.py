@@ -54,8 +54,8 @@ def main():
 
     data_type_list = [
         "quadrotor_diffusion_seed_0",
-        # "quadrotor_diffusion_seed_1",
-        # "quadrotor_diffusion_seed_2",
+        "quadrotor_diffusion_seed_1",
+        "quadrotor_diffusion_seed_2",
     ]
 
     # data_type_list = [

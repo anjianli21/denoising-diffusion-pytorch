@@ -16,13 +16,13 @@ import pickle
 import yaml
 import torch
 
-CVAE_PARENT_DIR = "results/iclr25/quadrotor/results/cvae_seed_0"
-RNN_PARENT_DIR = "results/iclr25/quadrotor/results/lstm_seed_0"
+CVAE_PARENT_DIR = "results/iclr25/quadrotor/results/cvae_seed_2"
+RNN_PARENT_DIR = "results/iclr25/quadrotor/results/lstm_seed_2"
 
 def main():
 
 
-    data_type_list = ["cvae_lstm_seed_0"]
+    data_type_list = ["cvae_lstm_seed_2"]
 
     # Setup v2
     TIME_MIN = 4.20
