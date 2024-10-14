@@ -49,22 +49,25 @@ def main():
 
     sample_num = 10
     condition_seed_num = 20
-
     condition_seed_list = [5000 + i for i in range(condition_seed_num)]
 
-    # # Diffusion
-    # data_type_list = [
-    #     # "quadrotor_diffusion_seed_0",
-    #     "quadrotor_diffusion_seed_1",
-    #     "quadrotor_diffusion_seed_2",
-    # ]
+    # sample_num = 30
+    # condition_seed_list = [5010]
+    # condition_seed_num = 1
 
-    # Constrained Diffusion
+    # Diffusion
     data_type_list = [
-        "quadrotor_constrained_diffusion_seed_0",
-        "quadrotor_constrained_diffusion_seed_1",
-        "quadrotor_constrained_diffusion_seed_2",
+        "quadrotor_diffusion_seed_0",
+        # "quadrotor_diffusion_seed_1",
+        # "quadrotor_diffusion_seed_2",
     ]
+
+    # # Constrained Diffusion
+    # data_type_list = [
+    #     "quadrotor_constrained_diffusion_seed_0",
+    #     "quadrotor_constrained_diffusion_seed_1",
+    #     "quadrotor_constrained_diffusion_seed_2",
+    # ]
 
     # data_type_list = [
     #     "quadrotor_constrained_diffusion_seed_0",
