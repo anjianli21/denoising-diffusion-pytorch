@@ -109,18 +109,18 @@ def evaluate_violation_car():
     #     "cvae_lstm_seed_2",
     # ]
 
-    # TODO： uniform
-    data_parent_path_list = [
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
-        "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
-]
-
-    data_type_list = [
-        "uniform_seed_0",
-        "uniform_seed_1",
-        "uniform_seed_2",
-    ]
+#     # TODO： uniform
+#     data_parent_path_list = [
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_0",
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_1",
+#         "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/uniform_seed_2",
+# ]
+#
+#     data_type_list = [
+#         "uniform_seed_0",
+#         "uniform_seed_1",
+#         "uniform_seed_2",
+#     ]
 
     #  add statistical constraints, tabletop_constrained_step_10_type_scaled_weight_10_seed_0
     # data_parent_path_list = [
@@ -135,7 +135,7 @@ def evaluate_violation_car():
     #     "tabletop_constrained_step_500_type_scaled_weight_1_seed_0"
     # ]
 
-    # TODO: DDDAS
+    #  DDDAS
     # data_type_list = [
     #     # "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
     #     # "tabletopv2_constraint_gt_std_absolute_weight_1_seed_0",
@@ -180,14 +180,14 @@ def evaluate_violation_car():
     # ]
 
     # # TODO: DDDAS, gt scaled, constrained diffusion
-    # data_type_list = [
-    #     "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
-    #     "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
-    #     "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
-    #     # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
-    #     # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
-    #     # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
-    # ]
+    data_type_list = [
+        "tabletopv2_constraint_gt_scaled_weight_01_seed_0",
+        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+        "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
+        # "tabletopv2_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
+    ]
 
 
     data_parent_path_list = [f"/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/tabletop_v2/{data_type}" for data_type in data_type_list]

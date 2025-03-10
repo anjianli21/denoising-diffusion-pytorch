@@ -124,21 +124,21 @@ def evaluate_violation_car():
     # ]
 
     # TODO: NeurIPS pred_x0, constrained diffusion
-    data_type_list = [
-        "car_constraint_pred_x0_one_over_t_weight_01_seed_0",
-        "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_1",
-        "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_2"
-    ]
+    # data_type_list = [
+    #     "car_constraint_pred_x0_one_over_t_weight_01_seed_0",
+    #     "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+    #     "car_experiment_predict_x0_violation_schedule_one_over_t_normalize_direct_clip_max_sample_500_weight_01_seed_2"
+    # ]
 
     # # TODO: DDDAS, gt scaled, constrained diffusion
-    # data_type_list = [
-    #     "car_constraint_gt_scaled_weight_01_seed_0",
-    #     "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
-    #     "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
-    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
-    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
-    #     # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
-    # ]
+    data_type_list = [
+        "car_constraint_gt_scaled_weight_01_seed_0",
+        "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_1",
+        "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_500_weight_01_seed_2",
+        # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_0",
+        # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_1",
+        # "car_experiment_gt_scaled_schedule_NA_normalize_direct_clip_max_sample_100_weight_1_seed_2",
+    ]
     data_parent_path = "/home/anjian/Desktop/project/trajectory_optimization/snopt_python/Data/sample_data/car"
 
 

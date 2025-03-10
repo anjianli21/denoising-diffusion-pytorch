@@ -1,4 +1,5 @@
 import math
+import pickle
 from pathlib import Path
 from random import random
 from functools import partial
@@ -926,8 +927,8 @@ class GaussianDiffusion1D(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
 
         # TODO: plot the violation loss for each t ####################################################################
-        to_plot = False
-        to_clip = False
+        to_plot = True
+        to_clip = True
         if to_plot:
             self.plot_constraint_violation(to_clip=to_clip, t=t, x_start=x_start,
                                            noise=noise, classes=classes)
@@ -1181,8 +1182,16 @@ class GaussianDiffusion1D(nn.Module):
         violation_value_sigma_list = []
         nn_violation_value_list = []
         pred_x0_violation_value_list = []
+
+        # TODO: collect x at each steps
+        x_list = []
+        t_list = []
+        condition = classes[:5, :]
         for ii in range(500):
+
             print(f"sampling step {ii}")
+            t_list.append(ii)
+
             curr_t = ii * torch.ones_like(t)
 
             with torch.no_grad():
@@ -1213,6 +1222,9 @@ class GaussianDiffusion1D(nn.Module):
                 nn_x_t_1 = (nn_x_t_1 + 1.0) / 2.0
 
                 x_start_predicted = (x_start_predicted + 1.0) / 2.0
+
+            # TODO: collect current x
+            x_list.append(curr_x_t[:5, :, :])
 
             if self.task_type == "car":
                 # from denoising_diffusion_pytorch.constraint_violation_function_improved_car import get_constraint_violation_car
@@ -1255,6 +1267,17 @@ class GaussianDiffusion1D(nn.Module):
             # Cleanup
             del curr_x_t, nn_x_t_1, curr_violation_losses, nn_violation_losses, pred_x0_violation_losses
             torch.cuda.empty_cache()
+
+        # TODO: save x_t at each time steps
+        x_data_path = "/home/anjian/Desktop/project/denoising-diffusion-pytorch/results/dddas/tabletop_x_data.pkl"
+        x_data = {}
+        x_data["t_list"] = t_list
+        x_data["x_list"] = x_list
+        x_data["condition"] = condition
+        with open(x_data_path, 'wb') as f:
+            pickle.dump(x_data, f)
+        print(f"x_data saved in {x_data_path}")
+        breakpoint()
 
         # Convert the list of tensors to a list of scalar values
         violation_mean_scalar_values = [value.item() for value in violation_value_mean_list]
