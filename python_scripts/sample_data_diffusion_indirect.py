@@ -21,7 +21,7 @@ def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust,d
     unet_dim_mults_in_str = "_".join(map(str, unet_dim_mults))
     embed_class_layers_dims = tuple(map(int, embed_class_layers_dims.split(',')))
     embed_class_layers_dims_in_str = "_".join(map(str, embed_class_layers_dims))
-    checkpoint_path = f"/scratch/gpfs/jg3607/Diffusion_model/indirect/results/cr3bp_vanilla_diffusion_seed_0/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_0.0_train_data_{data_num}/"
+    checkpoint_path = f"/scratch/gpfs/jg3607/Diffusion_model/indirect/results/cr3bp_vanilla_diffusion_seed_0/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_-1.0_train_data_{data_num}/"
 
     folder_name = get_latest_file(checkpoint_path)
     checkpoint_path = checkpoint_path + folder_name
@@ -82,7 +82,7 @@ def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust,d
     full_solution = np.insert(full_solution,9,-np.ones(sample_num),axis=1)
 
     if save_warmstart_data:
-        parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/indirect/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_0.0"
+        parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/indirect/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_-1.0"
         os.makedirs(parent_path, exist_ok=True)
         cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_thrust_{thrust}_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}.pkl"
         with open(cr3bp_time_mass_alpha_control_path, "wb") as fp:  # write pickle

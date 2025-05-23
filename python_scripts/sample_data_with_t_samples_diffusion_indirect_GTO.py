@@ -3,7 +3,7 @@ import time
 #sys.path.append('/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/python_scripts')
 
 #from models import *  # TODO, import CVAE models and lstm models, from '/home/anjian/Desktop/project/generative_trajectory_optimization'
-from classifier_free_guidance_cond_1d_improved_constrained_diffusion import Unet1D, GaussianDiffusion1D, Trainer1D
+from classifier_free_guidance_cond_1d_improved_constrained_diffusion_save_t_samples import Unet1D, GaussianDiffusion1D, Trainer1D
 
 import numpy as np
 import pickle
@@ -67,16 +67,18 @@ def main(unet_dim,embed_class_layers_dims,timesteps,data_num,sample_num,thrust,d
     max_costates = np.array([2.0,2.0,0.1865,0.5033,0.3460,0.0404]) # rounded up to 4 digits after the point
 
     # Unnormalize times and costates
-    full_solution[:, :] = full_solution[:, :] * (max_costates - min_costates) + min_costates
+    print(full_solution.shape)
+    full_solution[:,:,:] = full_solution[:,:,:] * (max_costates - min_costates) + min_costates
     # Add 0 times
-    full_solution = np.insert(full_solution,0,np.zeros(sample_num),axis=1)
-    full_solution = np.insert(full_solution,0,np.zeros(sample_num),axis=1)
-    full_solution = np.insert(full_solution,0,np.zeros(sample_num),axis=1)
+    full_solution = np.insert(full_solution,0,np.zeros([full_solution.shape[0],sample_num]),axis=2)
+    full_solution = np.insert(full_solution,0,np.zeros([full_solution.shape[0],sample_num]),axis=2)
+    full_solution = np.insert(full_solution,0,np.zeros([full_solution.shape[0],sample_num]),axis=2)
     # Add mass costate -1   
-    full_solution = np.insert(full_solution,9,-np.ones(sample_num),axis=1)
+    full_solution = np.insert(full_solution,9,-np.ones([full_solution.shape[0],sample_num]),axis=2)
+    print(full_solution.shape)
 
     if save_warmstart_data:
-        parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/indirect_GTO/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_-1.0"
+        parent_path = f"/home/jg3607/Thesis/Diffusion_model/denoising-diffusion-pytorch/results/generated_initializations/indirect_GTO/unet_{unet_dim}_mults_{unet_dim_mults_in_str}_embed_class_{embed_class_layers_dims_in_str}_timesteps_{timesteps}_batch_size_{batch_size}_cond_drop_0.1_mask_val_-1.0_with_timesteps_x0_rand"
         os.makedirs(parent_path, exist_ok=True)
         cr3bp_time_mass_alpha_control_path = f"{parent_path}/cr3bp_thrust_{thrust}_{diffusion_type}_w_{diffusion_w}_training_num_{data_num}_num_{sample_num}.pkl"
         with open(cr3bp_time_mass_alpha_control_path, "wb") as fp:  # write pickle
@@ -181,9 +183,11 @@ def get_sample_from_diffusion_attention(sample_num,
     end_time = time.time()
     print(f"{checkpoint_path}, {sample_num} data, takes {end_time - start_time} seconds")
 
-    sample_results = sample_results.reshape(sample_num, -1)
+    #sample_results = sample_results.reshape(sample_num, -1)
+    #sample_results = np.asarray(sample_results.detach().cpu())
+    sample_results = np.squeeze(sample_results,axis=2)
 
-    return sample_results.detach().cpu().numpy()
+    return sample_results
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter tuning for diffusion models")
@@ -205,7 +209,7 @@ if __name__ == "__main__":
                         help='Number of Training Data')
     parser.add_argument('--sample_num',
                         type=str,
-                        default="10000",
+                        default="100",
                         help='Number of Diffusion timesteps')
     parser.add_argument('--thrust_level',
                         type=str,
@@ -217,7 +221,7 @@ if __name__ == "__main__":
                         help='w parameter for classifier free guidance sampling')
     parser.add_argument('--batch_size',
                         type=str,
-                        default="1024",
+                        default="512",
                         help='batch size that was used for diffusion model training')
     
     args = parser.parse_args()
